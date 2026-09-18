@@ -54,33 +54,50 @@ document.addEventListener("DOMContentLoaded", function() {
 
       let submittedSuccessfully = false;
 
-      // 1. Primary: Direct submission to info@alliancegroups.com.au via FormSubmit AJAX
+      // 1. Primary delivery channel: FormSubmit sends the enquiry to info@alliancegroups.com.au.
+      // Customer-facing success is allowed ONLY when this delivery request succeeds.
       try {
         const fsRes = await fetch(FORMSUBMIT_URL, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
           body: JSON.stringify(data)
         });
+
         if (fsRes.ok) {
-          submittedSuccessfully = true;
+          let fsPayload = null;
+          try {
+            fsPayload = await fsRes.json();
+          } catch (_) {
+            // A successful HTTP status is sufficient if FormSubmit returns no JSON body.
+          }
+
+          if (!fsPayload || fsPayload.success !== false) {
+            submittedSuccessfully = true;
+          }
+        } else {
+          console.error('FormSubmit delivery failed with status:', fsRes.status);
         }
       } catch (fsErr) {
-        console.warn('FormSubmit network notice:', fsErr);
+        console.error('FormSubmit delivery failed:', fsErr);
       }
 
-      // 2. Secondary: Cloud function lead logging
+      // 2. Secondary: Cloud function lead logging only.
+      // This path must NEVER turn a failed email delivery into a false "Received" message.
       try {
-        await fetch(FIREBASE_FUNCTION_URL, {
+        const fbRes = await fetch(FIREBASE_FUNCTION_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-        submittedSuccessfully = true;
+
+        if (!fbRes.ok) {
+          console.warn('Backend lead logging returned status:', fbRes.status);
+        }
       } catch (fbErr) {
-        console.warn('Backend sync notice:', fbErr);
+        console.warn('Backend lead logging failed:', fbErr);
       }
 
       if (submittedSuccessfully) {
@@ -93,7 +110,7 @@ document.addEventListener("DOMContentLoaded", function() {
           submitBtn.innerHTML = '<span>✓ Received</span>';
         }
 
-        // Push conversion event to Google Tag Manager / Google Analytics
+        // Push conversion event to Google Tag Manager / Google Analytics only after confirmed delivery.
         if (window.dataLayer) {
           window.dataLayer.push({
             'event': 'enquiry_form_submit',
@@ -105,7 +122,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       } else {
         statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '<div style="background:#450a0a;color:#fecaca;border:1px solid #dc2626;padding:16px 20px;border-radius:8px;margin-top:16px;font-size:0.9rem;">Unable to submit online at this moment. Please call our 24/7 hotline directly on <a href="tel:0410942905" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0410 942 905</a> or email <a href="mailto:info@alliancegroups.com.au" style="color:#f59e0b;text-decoration:underline;">info@alliancegroups.com.au</a>.</div>';
+        statusDiv.classList.remove('show');
+        statusDiv.innerHTML = '<div style="background:#450a0a;color:#fecaca;border:1px solid #dc2626;padding:16px 20px;border-radius:8px;margin-top:16px;font-size:0.9rem;">We could not confirm delivery of your enquiry. Please call our 24/7 hotline directly on <a href="tel:0410942905" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0410 942 905</a> or email <a href="mailto:info@alliancegroups.com.au" style="color:#f59e0b;text-decoration:underline;">info@alliancegroups.com.au</a>.</div>';
         if (submitBtn) {
           submitBtn.innerHTML = originalBtnText;
           submitBtn.disabled = false;
