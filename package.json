@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "node --test tests/*.test.js"
