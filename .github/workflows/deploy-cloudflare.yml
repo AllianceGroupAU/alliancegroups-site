@@ -1,0 +1,113 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20.x"
+  DEFAULT_CF_PROJECT: "alliancegroups-site"
+
+jobs:
+  deploy-cloudflare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Build Cloudflare Pages output
+        run: npm run build:cloudflare
+
+      - name: Validate production artifact
+        run: |
+          test -f dist/index.html
+          grep -Fq "When the building fails" dist/index.html
+          test -f dist/intake/index.html
+          test ! -e dist/public/index.html
+          test ! -e dist/firebase-backend
+          echo "Production artifact validated."
+
+      - name: Resolve Cloudflare Pages project name
+        id: project
+        env:
+          CONFIGURED_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          PROJECT_NAME="${CONFIGURED_NAME:-$DEFAULT_CF_PROJECT}"
+          echo "name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare deployment credentials are not configured in GitHub."
+            exit 1
+          fi
+
+      - name: Ensure Cloudflare Pages project exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ steps.project.outputs.name }}
+        run: |
+          set -euo pipefail
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects"
+          STATUS="$(curl -sS -o /tmp/cf-project.json -w "%{http_code}"             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             -H "Content-Type: application/json"             "$API/$PROJECT_NAME")"
+
+          if [ "$STATUS" = "404" ]; then
+            echo "Creating Cloudflare Pages project $PROJECT_NAME"
+            curl -fsS -X POST "$API"               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"               -H "Content-Type: application/json"               --data "{\"name\":\"$PROJECT_NAME\",\"production_branch\":\"main\"}"
+          elif [ "$STATUS" != "200" ]; then
+            cat /tmp/cf-project.json
+            exit 1
+          else
+            echo "Cloudflare Pages project exists."
+          fi
+
+      - name: Deploy production build to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ steps.project.outputs.name }}
+        run: |
+          npx wrangler@latest pages deploy dist             --project-name="$PROJECT_NAME"             --branch=main             --commit-hash="$GITHUB_SHA"
+
+      - name: Attach production domains
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ steps.project.outputs.name }}
+        run: |
+          set -euo pipefail
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains"
+
+          for DOMAIN in alliancegroups.com.au www.alliancegroups.com.au; do
+            STATUS="$(curl -sS -o /tmp/cf-domain.json -w "%{http_code}"               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"               -H "Content-Type: application/json"               "$API/$DOMAIN")"
+
+            if [ "$STATUS" = "404" ]; then
+              echo "Attaching $DOMAIN"
+              curl -fsS -X POST "$API"                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"                 -H "Content-Type: application/json"                 --data "{\"name\":\"$DOMAIN\"}"
+            elif [ "$STATUS" = "200" ]; then
+              echo "$DOMAIN is already attached."
+            else
+              cat /tmp/cf-domain.json
+              exit 1
+            fi
+          done
