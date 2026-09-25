@@ -11,13 +11,12 @@ test('final homepage loads the production visual and unified delivery layers', (
   assert.match(html, /\/intake\//);
 });
 
-test('detailed intake uses the documented multipart FormSubmit path', () => {
+test('detailed intake does not submit to the suspended mailbox', () => {
   const html = fs.readFileSync('intake/index.html', 'utf8');
-  assert.match(html, /action="https:\/\/formsubmit\.co\/info@alliancegroups\.com\.au"/);
-  assert.match(html, /method="POST"/);
-  assert.match(html, /enctype="multipart\/form-data"/);
-  assert.match(html, /name="_next" value="https:\/\/www\.alliancegroups\.com\.au\/intake\/sent\.html"/);
-  assert.doesNotMatch(html, /js\/form-handler\.js/);
+  assert.match(html, /data-emergency-intake/);
+  assert.doesNotMatch(html, /formsubmit\.co/);
+  assert.doesNotMatch(html, /intake\/sent\.html/);
+  assert.match(html, /js\/intake-final\.js/);
 });
 
 test('legacy UI script no longer attaches its own form delivery listeners', () => {

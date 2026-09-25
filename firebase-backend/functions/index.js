@@ -218,12 +218,22 @@ exports.submitLead = onRequest(
         try {
           await transport.sendMail(mail);
           await leadRef.update({ notification_status: "sent" });
+          return res.status(200).json({
+            success: true,
+            message: "Enquiry submitted.",
+            id: leadId,
+            notificationDelivered: true,
+          });
         } catch (emailErr) {
           console.error("Email notification failed:", emailErr);
           await leadRef.update({ notification_status: "failed", notification_error: emailErr.message });
+          return res.status(202).json({
+            captured: true,
+            message: "Enquiry recorded; email notification is unavailable.",
+            id: leadId,
+            notificationDelivered: false,
+          });
         }
-
-        return res.status(200).json({ success: true, message: "Enquiry submitted.", id: leadId });
       }
 
       // Compliance Shield: return upload token to the session; do NOT email yet

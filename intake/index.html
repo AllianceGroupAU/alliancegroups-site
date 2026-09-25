@@ -63,15 +63,9 @@
           <form
             id="intake-form"
             class="intake-form"
-            data-detailed-intake
-            action="https://formsubmit.co/info@alliancegroups.com.au"
-            method="POST"
-            enctype="multipart/form-data"
+            data-emergency-intake
           >
             <input type="hidden" name="_subject" value="Detailed Website Intake — Alliance Group">
-            <input type="hidden" name="_next" value="https://www.alliancegroups.com.au/intake/sent.html">
-            <input type="hidden" name="_template" value="table">
-            <input type="hidden" name="_url" value="https://www.alliancegroups.com.au/intake/">
             <input type="text" name="_honey" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px" aria-hidden="true">
 
             <section class="intake-section">
@@ -238,8 +232,8 @@
                 <div class="field full">
                   <label for="attachment-1">Photos / documents / short video</label>
                   <div class="file-box">
-                    <input id="attachment-1" name="attachment" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/quicktime">
-                    <p class="file-rules">FormSubmit allows multiple attachments with a combined 10 MB maximum. For larger videos, submit the intake first and send the video link or file when we reply.</p>
+                    <input id="attachment-1" name="attachment" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/quicktime" disabled>
+                    <p class="file-rules">Online file upload is temporarily unavailable. Submit the property details, then call 0410 942 905 or 0403 126 276 to arrange documents or video.</p>
                     <div class="file-status" data-file-status></div>
                   </div>
                 </div>
@@ -284,5 +278,6 @@
 
   <script src="/js/final-home.js" defer></script>
   <script src="/js/intake-final.js" defer></script>
+  <script src="/js/form-handler.js" defer></script>
 </body>
 </html>
