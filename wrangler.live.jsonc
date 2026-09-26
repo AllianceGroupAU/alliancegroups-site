@@ -1,0 +1,20 @@
+{
+  "name": "alliance-main-site",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "alliancegroups.com.au/*", "zone_name": "alliancegroups.com.au" },
+    { "pattern": "www.alliancegroups.com.au/*", "zone_name": "alliancegroups.com.au" }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "destination_address": "la.asbestos@gmail.com"
+    }
+  ]
+}
