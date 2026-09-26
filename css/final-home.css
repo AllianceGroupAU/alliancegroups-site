@@ -274,6 +274,10 @@ button{cursor:pointer}
 .ba-label{position:absolute;top:16px;padding:7px 9px;border-radius:8px;background:rgba(7,16,24,.75);color:#fff;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(8px)}
 .ba-label.before{left:16px}.ba-label.after{right:16px}
 .ba-range{width:100%;margin-top:18px;accent-color:var(--copper)}
+.site-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.site-record-grid figure{margin:0;position:relative;min-height:370px;overflow:hidden;border-radius:16px;box-shadow:0 34px 70px rgba(7,16,24,.2)}
+.site-record-grid img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.site-record-grid figcaption{position:absolute;left:14px;bottom:14px;padding:7px 9px;border-radius:8px;background:rgba(7,16,24,.78);color:#fff;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(8px)}
 
 .evidence-grid{display:grid;grid-template-columns:1.25fr .75fr .75fr;grid-template-rows:290px 290px;gap:14px}
 .evidence-card{border-radius:18px;overflow:hidden;position:relative;min-height:0}
@@ -358,6 +362,7 @@ button{cursor:pointer}
   .hero-aside{max-width:520px}
   .triage-grid{grid-template-columns:repeat(2,1fr)}
   .method-grid,.before-after,.shield-panel,.cta-grid{grid-template-columns:1fr}
+  .site-record-grid{max-width:760px}
   .method-intro{position:static}
   .evidence-grid{grid-template-columns:1fr 1fr;grid-template-rows:320px 250px 250px}
   .evidence-card:first-child{grid-column:span 2;grid-row:auto}
@@ -380,6 +385,8 @@ button{cursor:pointer}
   .method-step{grid-template-columns:48px 1fr}
   .evidence-grid{display:grid;grid-template-columns:1fr;grid-template-rows:none}
   .evidence-card,.evidence-card:first-child{grid-column:auto;height:300px}
+  .site-record-grid{grid-template-columns:1fr}
+  .site-record-grid figure{min-height:270px}
   .shield-panel{padding:26px}
   .dashboard-grid{grid-template-columns:1fr}
   .dash-card.wide{grid-column:auto}
