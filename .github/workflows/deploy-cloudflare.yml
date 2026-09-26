@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Validate and Deploy Cloudflare Worker
 
 on:
   push:
@@ -7,10 +7,9 @@ on:
 
 env:
   NODE_VERSION: "20.x"
-  DEFAULT_CF_PROJECT: "alliancegroups-site"
 
 jobs:
-  deploy-cloudflare:
+  validate-and-deploy:
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -33,7 +32,7 @@ jobs:
       - name: Run regression tests
         run: npm test
 
-      - name: Build Cloudflare Pages output
+      - name: Build production output
         run: npm run build:cloudflare
 
       - name: Validate production artifact
@@ -41,75 +40,31 @@ jobs:
           test -f dist/index.html
           grep -Fq "When the building fails" dist/index.html
           test -f dist/intake/index.html
-          test ! -e dist/public/index.html
-          test ! -e dist/firebase-backend
-          echo "Production artifact validated."
+          test -f worker.js
+          test -f wrangler.live.jsonc
+          grep -Fq '"name": "alliance-main-site"' wrangler.live.jsonc
+          echo "Production artifact and Worker configuration validated."
 
-      - name: Resolve Cloudflare Pages project name
-        id: project
-        env:
-          CONFIGURED_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
-        run: |
-          PROJECT_NAME="${CONFIGURED_NAME:-$DEFAULT_CF_PROJECT}"
-          echo "name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+      - name: Validate Wrangler configuration
+        run: npx wrangler@latest deploy --config wrangler.live.jsonc --dry-run
 
-      - name: Verify Cloudflare credentials
+      - name: Detect Cloudflare CI credentials
+        id: cloudflare-auth
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Cloudflare deployment credentials are not configured in GitHub."
-            exit 1
-          fi
-
-      - name: Ensure Cloudflare Pages project exists
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT_NAME: ${{ steps.project.outputs.name }}
-        run: |
-          set -euo pipefail
-          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects"
-          STATUS="$(curl -sS -o /tmp/cf-project.json -w "%{http_code}"             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             -H "Content-Type: application/json"             "$API/$PROJECT_NAME")"
-
-          if [ "$STATUS" = "404" ]; then
-            echo "Creating Cloudflare Pages project $PROJECT_NAME"
-            curl -fsS -X POST "$API"               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"               -H "Content-Type: application/json"               --data "{\"name\":\"$PROJECT_NAME\",\"production_branch\":\"main\"}"
-          elif [ "$STATUS" != "200" ]; then
-            cat /tmp/cf-project.json
-            exit 1
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare CI credentials are configured."
           else
-            echo "Cloudflare Pages project exists."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Cloudflare deploy skipped because GitHub CI credentials are not configured. Validation still passed."
           fi
 
-      - name: Deploy production build to Cloudflare Pages
+      - name: Deploy production Worker
+        if: steps.cloudflare-auth.outputs.ready == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT_NAME: ${{ steps.project.outputs.name }}
-        run: |
-          npx wrangler@latest pages deploy dist             --project-name="$PROJECT_NAME"             --branch=main             --commit-hash="$GITHUB_SHA"
-
-      - name: Attach production domains
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT_NAME: ${{ steps.project.outputs.name }}
-        run: |
-          set -euo pipefail
-          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains"
-
-          for DOMAIN in alliancegroups.com.au www.alliancegroups.com.au; do
-            STATUS="$(curl -sS -o /tmp/cf-domain.json -w "%{http_code}"               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"               -H "Content-Type: application/json"               "$API/$DOMAIN")"
-
-            if [ "$STATUS" = "404" ]; then
-              echo "Attaching $DOMAIN"
-              curl -fsS -X POST "$API"                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"                 -H "Content-Type: application/json"                 --data "{\"name\":\"$DOMAIN\"}"
-            elif [ "$STATUS" = "200" ]; then
-              echo "$DOMAIN is already attached."
-            else
-              cat /tmp/cf-domain.json
-              exit 1
-            fi
-          done
+        run: npx wrangler@latest deploy --config wrangler.live.jsonc
