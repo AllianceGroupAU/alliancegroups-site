@@ -11,6 +11,7 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 const { getStorage } = require("firebase-admin/storage");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const { buildDemandPayload, forwardLeadToDemandEngine } = require("./demand-bridge");
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -23,6 +24,7 @@ const storage = () => getStorage();
 // ── Secrets (explicitly declared; accessible only within bound functions) ──
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
+const demandWebhookSecret = defineSecret("DEMAND_WEBHOOK_SECRET");
 
 // ── Upload policy ──────────────────────────────────────────────────────────
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB — must match frontend
@@ -204,6 +206,43 @@ exports.submitLead = onRequest(
 
       const leadRef = await db().collection("leads").add(leadData);
       const leadId = leadRef.id;
+
+      // Optional fail-open bridge into the private Alliance Demand Engine.
+      // Firestore remains the durable source of truth even if JARVIS is unavailable.
+      const demandPayload = buildDemandPayload(leadId, leadData);
+      const demandUrl = String(process.env.DEMAND_WEBHOOK_URL || "").trim();
+      let demandBridge = { status: "disabled", httpStatus: null };
+      if (demandUrl) {
+        try {
+          demandBridge = await forwardLeadToDemandEngine(demandPayload, {
+            url: demandUrl,
+            secret: demandWebhookSecret.value(),
+          });
+        } catch (bridgeErr) {
+          demandBridge = {
+            status: "failed",
+            httpStatus: null,
+            error: bridgeErr && bridgeErr.message ? bridgeErr.message : String(bridgeErr),
+          };
+        }
+      }
+
+      try {
+        await leadRef.update({
+          demand_bridge_status: demandBridge.status,
+          demand_bridge_http_status: demandBridge.httpStatus || null,
+          demand_bridge_lead_ref: demandBridge.leadRef || null,
+          demand_bridge_duplicate: !!demandBridge.duplicate,
+          demand_bridge_error: demandBridge.error || null,
+          demand_bridge_last_attempt_at: FieldValue.serverTimestamp(),
+        });
+      } catch (bridgeRecordErr) {
+        console.error("Demand bridge status record failed:", bridgeRecordErr);
+      }
+
+      if (demandBridge.status === "failed") {
+        console.error("Demand Engine bridge failed open:", demandBridge.error || demandBridge.httpStatus);
+      }
 
       // For general enquiries, send notification immediately
       if (!isCS) {
