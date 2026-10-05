@@ -53,6 +53,32 @@ function signDemandWebhook(bodyText, timestamp, secret) {
   return "sha256=" + digest;
 }
 
+
+function buildRelayEnvelope(leadId, leadData, secret, timestamp = String(Math.floor(Date.now() / 1000))) {
+  if (!secret) throw new Error("Demand webhook secret is not configured");
+  const payload = buildDemandPayload(leadId, leadData);
+  const payloadBody = JSON.stringify(payload);
+  return {
+    event_id: String(leadId),
+    payload,
+    payload_body: payloadBody,
+    signature: signDemandWebhook(payloadBody, timestamp, secret),
+    timestamp: String(timestamp),
+    idempotency_key: payload.idempotency_key,
+  };
+}
+
+function verifyRelayBearer(authorizationHeader, expectedKey) {
+  const expected = String(expectedKey || "");
+  const header = String(authorizationHeader || "");
+  if (!expected || !header.startsWith("Bearer ")) return false;
+  const supplied = header.slice(7);
+  const expectedBuf = Buffer.from(expected, "utf8");
+  const suppliedBuf = Buffer.from(supplied, "utf8");
+  if (expectedBuf.length !== suppliedBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, suppliedBuf);
+}
+
 async function forwardLeadToDemandEngine(payload, options = {}) {
   const url = String(options.url || "").trim();
   if (!url) return { status: "disabled", httpStatus: null };
@@ -122,4 +148,6 @@ module.exports = {
   buildDemandPayload,
   signDemandWebhook,
   forwardLeadToDemandEngine,
+  buildRelayEnvelope,
+  verifyRelayBearer,
 };

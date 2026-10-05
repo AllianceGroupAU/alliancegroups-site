@@ -5,6 +5,8 @@ const {
   buildDemandPayload,
   signDemandWebhook,
   forwardLeadToDemandEngine,
+  buildRelayEnvelope,
+  verifyRelayBearer,
 } = require("./demand-bridge");
 
 async function run() {
@@ -65,6 +67,37 @@ async function run() {
   assert.match(captured.options.headers["X-Alliance-Signature"], /^sha256=[0-9a-f]{64}$/);
   assert.deepEqual(JSON.parse(captured.options.body), payload);
 
+  const relayEnvelope = buildRelayEnvelope(
+    "firebaseLead123",
+    {
+      name: "Jane Manager",
+      company: "Example Strata",
+      email: "jane@example.com",
+      phone: "0400000000",
+      service: "Asbestos / hazardous materials",
+      siteAddress: "18 Sample Rd, Aspley QLD 4034",
+      urgency: "Urgent / active issue",
+      message: "Suspected asbestos material has been damaged during works.",
+      isComplianceShield: false,
+    },
+    secret,
+    "1760000002"
+  );
+  assert.equal(relayEnvelope.event_id, "firebaseLead123");
+  assert.equal(relayEnvelope.idempotency_key, "firebase:firebaseLead123");
+  assert.equal(relayEnvelope.timestamp, "1760000002");
+  assert.deepEqual(JSON.parse(relayEnvelope.payload_body), relayEnvelope.payload);
+  const relayExpected = crypto
+    .createHmac("sha256", secret)
+    .update(relayEnvelope.timestamp + "." + relayEnvelope.payload_body)
+    .digest("hex");
+  assert.equal(relayEnvelope.signature, "sha256=" + relayExpected);
+
+  assert.equal(verifyRelayBearer("Bearer relay-key", "relay-key"), true);
+  assert.equal(verifyRelayBearer("Bearer wrong", "relay-key"), false);
+  assert.equal(verifyRelayBearer("", "relay-key"), false);
+  assert.equal(verifyRelayBearer("Bearer relay-key", ""), false);
+
   const failed = await forwardLeadToDemandEngine(payload, {
     url: "https://internal.example/api/inbound/webhook",
     secret,
@@ -76,9 +109,11 @@ async function run() {
   assert.match(failed.error, /JARVIS offline/);
 
   const indexSource = require("node:fs").readFileSync(require("node:path").join(__dirname, "index.js"), "utf8");
-  assert.match(indexSource, /forwardLeadToDemandEngine/);
   assert.match(indexSource, /demand_bridge_status/);
   assert.match(indexSource, /DEMAND_WEBHOOK_SECRET/);
+  assert.match(indexSource, /DEMAND_RELAY_KEY/);
+  assert.match(indexSource, /exports\.pullDemandQueue/);
+  assert.match(indexSource, /exports\.ackDemandQueue/);
 
   console.log("PASS: Firebase demand bridge maps, signs, deduplicates and fails open");
 }
