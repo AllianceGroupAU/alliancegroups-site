@@ -21,6 +21,15 @@ document.addEventListener("DOMContentLoaded", function () {
     return '<a href="tel:0410942905" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0410 942 905</a> or <a href="tel:0403126276" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0403 126 276</a>';
   }
 
+  function trackLead(form, deliveryStatus) {
+    if (typeof window.gtag !== "function") return;
+    window.gtag("event", "generate_lead", {
+      form_id: form.id || "website-form",
+      lead_source: "website",
+      delivery_status: deliveryStatus,
+    });
+  }
+
   function ensureHoneypot(form) {
     if (form.querySelector('[name="_honey"],[name="_hp"]')) return;
     const hp = document.createElement("input");
@@ -75,6 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const payload = await response.json().catch(() => ({}));
 
         if (response.ok && payload.notificationDelivered) {
+          trackLead(form, "delivered");
           form.reset();
           status.style.display = "block";
           status.classList.add("show");
@@ -84,6 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
           return;
         }
         if (response.status === 202 && payload.captured) {
+          trackLead(form, "captured");
           form.reset();
           status.style.display = "block";
           status.classList.add("show");
