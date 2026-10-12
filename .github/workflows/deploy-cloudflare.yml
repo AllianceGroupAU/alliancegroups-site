@@ -4,6 +4,15 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      confirm_live_worker_target:
+        description: "ONLY after verifying alliance-main-site is the live origin. Type YES to deploy."
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "YES"
 
 env:
   NODE_VERSION: "22.x"
@@ -18,7 +27,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # pinned checkout v4.2.2 (tested)
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -38,7 +47,8 @@ jobs:
       - name: Validate production artifact
         run: |
           test -f dist/index.html
-          grep -Fq "When the building fails" dist/index.html
+          grep -Fq "Asbestos, roofing &amp;" dist/index.html
+          test -s dist/_worker.js
           test -f dist/intake/index.html
           test -f worker.js
           test -f wrangler.live.jsonc
@@ -62,8 +72,16 @@ jobs:
             echo "::notice::Cloudflare deploy skipped because GitHub CI credentials are not configured. Validation still passed."
           fi
 
+      - name: Reject manual release without credentials
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm_live_worker_target == 'YES' && steps.cloudflare-auth.outputs.ready != 'true'
+        run: |
+          echo "::error::Missing CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID. No production deployment attempted."
+          exit 1
+
+      # Never deploy merely because a PR merged; the configured Worker owns both public hostnames.
+      # First verify it is the intended origin and preserve its existing deployment for rollback.
       - name: Deploy production Worker
-        if: steps.cloudflare-auth.outputs.ready == 'true'
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm_live_worker_target == 'YES' && steps.cloudflare-auth.outputs.ready == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
