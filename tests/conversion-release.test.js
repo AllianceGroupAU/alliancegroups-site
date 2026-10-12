@@ -37,3 +37,9 @@ test('contact number, inactive inbox and delivery metrics are consistent', () =>
   assert.match(read('js/form-handler.js'), /lead_recorded_unnotified/);
   assert.match(read('js/final-home.js'), /contact_phone_click/);
 });
+
+test('reviews refer to independently published feedback without fictitious star counts', () => {
+  const reviews = read('reviews.html');
+  assert.match(reviews, /query_place_id=ChIJRbyejKn9k2sROGGC5YuSl1g/);
+  assert.doesNotMatch(reviews, /128\+|Verified Customer Experiences|Rachel Thompson|Peter &amp; Donna Walsh/);
+});
