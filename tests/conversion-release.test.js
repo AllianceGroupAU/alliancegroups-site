@@ -8,6 +8,9 @@ test('Cloudflare build includes the intake worker', () => {
   const build = read('scripts/build-cloudflare.mjs');
   assert.match(build, /copyFile\(path\.join\(root, 'worker\.js'\), path\.join\(out, '_worker\.js'\)\)/);
   assert.match(read('worker.js'), /url\.pathname === "\/api\/intake"/);
+  // The Pages advanced-mode Worker must be excluded from Wrangler Worker static assets.
+  assert.match(build, /writeFile\(path\.join\(out, '\.assetsignore'\), '_worker\.js\\n'\)/);
+
 });
 
 test('quick enquiry requires callback details but not an email address', () => {
