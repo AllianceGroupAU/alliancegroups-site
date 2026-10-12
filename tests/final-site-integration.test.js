@@ -8,7 +8,8 @@ test('final homepage loads the production visual and unified delivery layers', (
   assert.match(html, /\/css\/final-home\.css/);
   assert.match(html, /\/js\/final-home\.js/);
   assert.match(html, /\/js\/form-handler\.js/);
-  assert.match(html, /When the building fails/);
+  assert.match(html, /Asbestos, roofing &amp;/);
+  assert.match(html, /Request a callback/);
   assert.match(html, /\/intake\//);
 });
 
@@ -27,7 +28,7 @@ test('legacy UI script no longer attaches its own form delivery listeners', () =
   assert.match(source, /Form submission is intentionally centralized in js\/form-handler\.js/);
 });
 
-test('intake attachment guard enforces FormSubmit 10 MB total limit', () => {
+test('intake attachment guard enforces a 10 MB total limit', () => {
   const source = fs.readFileSync('js/intake-final.js', 'utf8');
   assert.match(source, /10 \* 1024 \* 1024/);
   assert.match(source, /submit\.disabled = tooLarge/);

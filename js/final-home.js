@@ -63,6 +63,13 @@
     email.addEventListener('change', syncReply);
   }
 
+  document.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+    link.addEventListener('click', () => {
+      const details = { event: 'contact_phone_click', source_page: location.pathname, contact_method: 'phone' };
+      if (Array.isArray(window.dataLayer)) window.dataLayer.push(details);
+    });
+  });
+
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', (event) => {
       const selector = anchor.getAttribute('href');

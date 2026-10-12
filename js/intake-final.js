@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const form = document.querySelector('[data-detailed-intake]');
+  const form = document.querySelector('[data-emergency-intake], [data-detailed-intake]');
   if (!form) return;
 
   const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
@@ -25,7 +25,9 @@
     const bytes = totalFileBytes();
     const count = fileInputs.reduce((n, input) => n + (input.files ? input.files.length : 0), 0);
 
-    if (fileStatus) {
+    if (fileStatus && fileInputs.length && fileInputs.every((input) => input.disabled)) {
+      fileStatus.textContent = "Online attachments are unavailable. Describe the evidence and arrange sharing after contact.";
+    } else if (fileStatus) {
       fileStatus.textContent = count
         ? count + ' file' + (count === 1 ? '' : 's') + ' selected · ' + formatBytes(bytes) + ' / 10 MB total'
         : 'No files selected · 10 MB total limit';
@@ -35,7 +37,7 @@
     if (alertBox) {
       alertBox.style.display = tooLarge ? 'block' : 'none';
       if (tooLarge) {
-        alertBox.textContent = 'Attachments total ' + formatBytes(bytes) + '. FormSubmit accepts up to 10 MB total, so please remove or compress one or more files before submitting.';
+        alertBox.textContent = 'Attachments total ' + formatBytes(bytes) + '. Online attachment submission is unavailable. Please remove the files and describe the evidence instead.';
       }
     }
     if (submit) submit.disabled = tooLarge;

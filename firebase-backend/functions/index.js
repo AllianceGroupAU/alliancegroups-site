@@ -211,7 +211,7 @@ exports.submitLead = onRequest(
         const mail = {
           from: `"Alliance Building & Hazmat Group" <${smtpUser.value()}>`,
           replyTo: email || undefined,
-          to: "info@alliancegroups.com.au",
+          to: process.env.INTAKE_NOTIFICATION_TO || "la.asbestos@gmail.com",
           subject: `New Website Enquiry — ${service || "General"} [${leadId}]`,
           text: `New enquiry received.\n\nName: ${name}\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\nService: ${service}\nSite Address: ${siteAddress}\nUrgency: ${urgency}\n\nMessage:\n${message}\n\nLead ID: ${leadId}`,
         };
@@ -563,7 +563,7 @@ exports.markSubmissionReady = onRequest(
       const mail = {
         from: `"Alliance Building & Hazmat Group" <${smtpUser.value()}>`,
         replyTo: leadData.email || undefined,
-        to: "info@alliancegroups.com.au",
+        to: process.env.INTAKE_NOTIFICATION_TO || "la.asbestos@gmail.com",
         subject: `Compliance Shield Submission Ready — ${leadData.documentType || "Document Review"} [${leadId}]`,
         text: [
           "A Compliance Shield submission is ready for review.",
@@ -584,8 +584,10 @@ exports.markSubmissionReady = onRequest(
         ].join("\n"),
       };
 
+      let notificationDelivered = false;
       try {
         await transport.sendMail(mail);
+        notificationDelivered = true;
         await leadDoc.ref.update({ notification_status: "sent" });
       } catch (emailErr) {
         console.error("Final notification email failed:", emailErr);
@@ -595,7 +597,8 @@ exports.markSubmissionReady = onRequest(
 
       return res.status(200).json({
         success: true,
-        message: "Submission marked ready. Our team has been notified.",
+        message: notificationDelivered ? "Submission marked ready; notification delivered." : "Submission marked ready; email notification could not be delivered.",
+        notificationDelivered,
         verifiedDocCount: verifiedCount,
       });
 

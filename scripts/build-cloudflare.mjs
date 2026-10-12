@@ -31,6 +31,10 @@ const excludedHtml = new Set([
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
+// Cloudflare Pages advanced-mode worker: handles /api/intake and forwards assets.
+// Without _worker.js the static build has no endpoint for enquiry submissions.
+await copyFile(path.join(root, 'worker.js'), path.join(out, '_worker.js'));
+
 const entries = await readdir(root, { withFileTypes: true });
 for (const entry of entries) {
   if (!entry.isFile() || !entry.name.endsWith('.html') || excludedHtml.has(entry.name)) {

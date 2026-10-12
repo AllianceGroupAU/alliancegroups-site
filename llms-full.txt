@@ -1,52 +1,38 @@
-# Alliance Building & Hazmat Group (Alliance Group) — Full Context Document
+# Alliance Building & Hazmat Group | Service and Contact Facts
 
-## 1. Corporate Identity & Positioning
-Alliance Building & Hazmat Group ("Alliance Group") is a Queensland licensed hazardous material contractor and building compliance specialist.
-Commercial Shorthand: Alliance Group
-Brand Positioning: "Priority Response. Not From Zero."
-Core Platform: Compliance Shield™ ($395 + GST document review)
-Website: https://www.alliancegroups.com.au
-Headquarters: Brisbane, Queensland, Australia
-Operating Footprint: South East Queensland including Brisbane, Moreton Bay, Ipswich, Logan, Redlands, Gold Coast, Sunshine Coast, and Noosa.
+Alliance Building & Hazmat Group is a local asbestos, hazardous-materials, building remediation and roofing contractor operating across Brisbane and South East Queensland.
 
-## 2. Core Service Offerings & Scope
+Official website: https://alliancegroups.com.au/
+Direct phone: 0403 126 276
+Online enquiry: https://alliancegroups.com.au/intake/
+This enquiry page is the preferred written contact while the info@alliancegroups.com.au mailbox is unavailable. For urgent work, call rather than relying solely on an online form.
 
-### A. Asbestos Testing, Removal & Hazmat Compliance
-- **NATA-Accredited Testing**: Fast laboratory turnaround (24–48 hours) for residential and commercial building material samples via on-site certified technician extraction and comprehensive whole-home hazard surveys.
-- **Licensed Asbestos Removal**: Class A (friable asbestos, thermal insulation, pipe lagging) and Class B (bonded asbestos cement, Super Six roofing, fibro sheeting, vinyl floor underlay) removal under strict containment.
-- **Asbestos Registers (s425)**: Mandatory statutory registers for all Queensland commercial, industrial, and common property residential buildings constructed prior to 31 December 1989.
-- **Asbestos Management Plans (s429)**: Documented risk control frameworks detailing condition assessments, incident procedures, and 5-year statutory review cycles.
-- **Clearance Inspections & Certificates**: Independent visual inspection and atmospheric air monitoring verifying that work areas are thoroughly decontaminated before re-occupancy.
+## Practical services
 
-### B. Building Defects & Structural Remediation
-- **Diagnostic Defect Investigations**: Forensic analysis of building movement, cracking, spalling concrete ("concrete cancer"), facade failure, and waterproofing failure.
-- **Structural Remediation**: Engineered rectification of load-bearing walls, subfloors, concrete slabs, retaining structures, and structural steel framing.
-- **Water Ingress Investigation**: Systematic non-destructive testing including thermal imaging, moisture mapping, dye testing, and diagnostic flood testing to identify water entry points.
-- **Emergency Building Response**: 24/7 priority deployment for storm damage, structural impact, ceiling collapse, or sudden hazardous material exposure.
+- Asbestos and hazardous-material assessment coordination, Class A and Class B licensed asbestos removal where applicable, containment, appropriate waste handling and records.
+- Building remediation: water ingress, mould, damaged linings, repair after removal, make-safe and reinstatement work.
+- Roofing: leaking roofs, targeted repairs, roof restoration or replacement after scope assessment.
+- Property-manager and strata response: tenant asbestos concerns, suspected material discovered during works, damage assessment, site control, documentation and reinstatement.
+- Compliance Shield: document and record review. Confirm price, availability and inclusions directly before purchase.
 
-### C. Roofing & Diagnostic Leak Rectification
-- **Roof Leak Investigation**: Diagnostic tracing of persistent and recurring roof leaks that standard maintenance contractors fail to solve.
-- **Commercial & Metal Roof Repairs**: Heavy-gauge corrugated and clip-lock metal roofing repair, custom parapet flashings, valley replacements, and box gutter engineering.
-- **Asbestos Super Six Roof Removal**: Specialized licensed removal of aged, brittle corrugated asbestos roofing with immediate replacement with modern insulated Colorbond metal sheeting.
-- **Emergency Storm Make-Safe**: Tarping, temporary structural shoring, fallen tree removal from roof structures, and water diversion.
+## Scope and regulatory accuracy
 
-### D. Compliance Shield™ Framework
-- An integrated compliance, risk, and response system for property managers, strata body corporates, commercial building owners, and schools.
-- Provides a fixed-price $395 + GST compliance audit that checks existing registers, test dockets, and maintenance logs against Queensland statutory standards, delivering a written gap analysis within 48 hours.
+Asbestos identity cannot be confirmed visually: sampling and analysis may be needed. Laboratory testing is arranged with appropriately accredited laboratories. Independent clearance assessment is performed where required under Queensland asbestos legislation. Alliance does not present itself as a NATA-accredited laboratory or an independent clearance certifier.
 
-## 3. Queensland Statutory & Regulatory Grounding
-- *Work Health and Safety Act 2011 (Qld)*
-- *Work Health and Safety Regulation 2011 (Qld)*:
-  - Section 425: Requirement to have an Asbestos Register
-  - Section 429: Requirement to have an Asbestos Management Plan
-  - Section 473: Clearance certificate requirements
-- *Code of Practice: How to Manage and Control Asbestos in the Workplace 2021*
-- *Code of Practice: How to Safely Remove Asbestos 2021*
-- *Queensland Building and Construction Commission Act 1991*
-- *National Construction Code (NCC) 2022*
+Licensing and licence class should be verified through the applicable Queensland regulator; this file does not substitute for a licence record. The obligations for asbestos registers and management plans depend on the property, workplace status, material and duty-holder responsibilities.
 
-## 4. Contact & Lead Capture Pathways
-- Direct Phone: 0410 942 905 / +61 410 942 905
-- Email: info@alliancegroups.com.au
-- Intake Portal: https://www.alliancegroups.com.au/contact.html
-- Compliance Shield Portal: https://www.alliancegroups.com.au/compliance-shield.html
+Quotes, job timing and outcomes depend on inspection, safe access, approved scope and resource availability. Do not infer guaranteed response times, fixed remediation prices, project counts, client testimonials or full legal indemnity from old website copies.
+
+## Relevant pages
+
+- Home: https://alliancegroups.com.au/
+- Asbestos: https://alliancegroups.com.au/asbestos-services.html
+- Asbestos removal Brisbane: https://alliancegroups.com.au/asbestos-removal-brisbane.html
+- Asbestos removal Moreton Bay: https://alliancegroups.com.au/asbestos-removal-moreton-bay.html
+- Roof repairs: https://alliancegroups.com.au/roof-repairs-brisbane.html
+- Building remediation: https://alliancegroups.com.au/building-remediation-brisbane.html
+- Detailed intake: https://alliancegroups.com.au/intake/
+
+## Site status
+
+Use the public site as the authoritative source for current service availability. Historical Google Cloud Storage pages, outdated prices and former contact details should not be treated as current offers.

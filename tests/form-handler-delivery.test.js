@@ -12,8 +12,10 @@ test('routes all public enquiry forms through the Cloudflare intake endpoint', (
   assert.doesNotMatch(source, /formsubmit\.co/);
   assert.match(source, /notificationDelivered/);
   assert.match(source, /Enquiry sent/);
-  assert.match(source, /0410 942 905/);
+  assert.doesNotMatch(source, /0410 942 905/);
   assert.match(source, /0403 126 276/);
+  assert.match(source, /lead_recorded_unnotified/);
+  assert.match(source, /Online attachments are temporarily unavailable/);
 });
 
 test('Cloudflare delivery is the primary notification path with Firebase backup', () => {
