@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const form = document.querySelector('[data-detailed-intake]');
+  const form = document.querySelector('[data-emergency-intake], [data-detailed-intake]');
   if (!form) return;
 
   const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
