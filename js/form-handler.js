@@ -18,12 +18,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function callLinks() {
-    return '<a href="tel:0410942905" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0410 942 905</a> or <a href="tel:0403126276" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0403 126 276</a>';
+    return '<a href="tel:0403126276" style="color:#f59e0b;font-weight:bold;text-decoration:underline;">0403 126 276</a>';
   }
 
   function trackLead(form, deliveryStatus) {
-    if (typeof window.gtag !== "function") return;
-    window.gtag("event", "generate_lead", {
+    const eventName = deliveryStatus === "delivered" ? "generate_lead" : "lead_recorded_unnotified";
+    if (typeof window.gtag !== "function") {
+      if (Array.isArray(window.dataLayer)) window.dataLayer.push({event: eventName, form_id: form.id || "website-form", delivery_status: deliveryStatus});
+      return;
+    }
+    window.gtag("event", eventName, {
       form_id: form.id || "website-form",
       lead_source: "website",
       delivery_status: deliveryStatus,
@@ -64,6 +68,14 @@ document.addEventListener("DOMContentLoaded", function () {
       event.preventDefault();
       if (!form.checkValidity()) {
         form.reportValidity();
+        return;
+      }
+      const files = Array.from(form.querySelectorAll('input[type="file"]')).flatMap((input) => Array.from(input.files || []));
+      if (files.length) {
+        const status = getStatus(form);
+        status.style.display = "block";
+        status.setAttribute("role", "alert");
+        status.textContent = "Online attachments are temporarily unavailable. Remove the files, submit the written details, and we will arrange the photos or documents when we contact you.";
         return;
       }
       const submit = form.querySelector('button[type="submit"]') || form.querySelector("button");
