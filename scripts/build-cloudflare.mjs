@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -34,6 +34,14 @@ await mkdir(out, { recursive: true });
 // Cloudflare Pages advanced-mode worker: handles /api/intake and forwards assets.
 // Without _worker.js the static build has no endpoint for enquiry submissions.
 await copyFile(path.join(root, 'worker.js'), path.join(out, '_worker.js'));
+
+// This repository also ships a standalone Cloudflare Worker (wrangler.live.jsonc
+// main: worker.js, assets.directory: dist). The copy above is necessary for a
+// Cloudflare Pages build, but must NEVER be uploaded as a publicly served
+// static asset by Wrangler Workers. Wrangler honours this ignore rule for the
+// Worker asset upload while leaving the source worker.js as the executable.
+await writeFile(path.join(out, '.assetsignore'), '_worker.js\n');
+
 
 const entries = await readdir(root, { withFileTypes: true });
 for (const entry of entries) {
