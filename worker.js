@@ -340,9 +340,15 @@ export default {
       const user = await verifyOperationsUser(request,env);
       if (!user) return privateJson({error:"Private operations access denied."},403);
       if (!env.CRM_DB) return privateJson({error:"CRM database not provisioned."},503);
+      if (!["GET","HEAD"].includes(request.method) && request.headers.get("Origin") !== url.origin) {
+        return privateJson({error:"Cross-site changes are not allowed."},403);
+      }
       if (url.pathname.startsWith("/api/internal/")) return handleOperations(request,env,user);
       if (url.pathname === "/ops") return Response.redirect(url.origin+"/ops/",302);
-      return env.ASSETS.fetch(request);
+      const asset = await env.ASSETS.fetch(request);
+      const headers = new Headers(asset.headers);
+      for (const [key,value] of Object.entries(PRIVATE_HEADERS)) headers.set(key,value);
+      return new Response(asset.body,{status:asset.status,headers});
     }
     if (url.pathname === "/api/intake") {
       if (request.method !== "POST") {
