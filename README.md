@@ -1,53 +1,35 @@
-# Alliance Groups – Compliance Shield
+# Alliance Building & Hazmat Group | Alliance Website
 
-Marketing microsite for Alliance Groups' Compliance Shield platform. The site is built with Next.js and is deployed to Vercel through GitHub Actions.
+The public site at https://www.alliancegroups.com.au/ was developed and published through a **ChatGPT-led workflow**. This repository contains Alliance's multi-page public website, Cloudflare Worker intake, Firebase archive option and the proposed private Alliance Command operations module.
 
-## Getting started
+**Deployment target: Cloudflare (NOT Vercel).** Vercel references in old project artifacts are historical and must not be treated as the active deployment pipeline.
+
+## Current source layout
+
+- `index.html`, `*.html`, `css/`, `js/`, `images/`, `intake/`, `knowledge/`: public website and service pages.
+- `worker.js`: Cloudflare Worker for public `/api/intake` and private operations routing.
+- `wrangler.live.jsonc`: configured Worker target named `alliance-main-site`; its routes include apex and www for `alliancegroups.com.au`. **The configuration alone is not proof this is the current live origin. Confirm in Cloudflare before deploying.**
+- `scripts/build-cloudflare.mjs`: assembles public Cloudflare static assets into `dist/`; Cloudflare Pages supports `dist/_worker.js`; standalone Worker uses `worker.js` and ignores `_worker.js` in uploaded assets.
+- `firebase-backend/`: legacy/optional Firestore and notifications backend; do not assume this is deployed or delivering emails.
+- `ops/`, `operations/`: proposed Cloudflare Access-protected internal CRM. Private D1/R2/Access provisioning required. No real CRM is live until verified.
+
+## Validate changes without publishing
 
 ```bash
-npm install
-npm run dev
+npm test
+npm run build:cloudflare
+npx wrangler@4.149.0 deploy --config wrangler.live.jsonc --dry-run
 ```
 
-- Development runs at `http://localhost:3000` by default.
-- To verify a production build locally, run `npm run build && npm start`.
+The GitHub **Site integrity** workflow runs syntax checks, unit tests, artifact checks and a Cloudflare dry run. A passing CI result is **not** live-site verification.
 
-## Development notes
+## Publishing guardrails
 
-- The root route is served from `/public/index.html` via the rewrite defined in `next.config.js`.
-- Static assets still belong in `/public`.
-- `next.config.js` keeps the default Next.js runtime so local `npm start` and Vercel deployments use the same serving model.
+1. Compare the actual ChatGPT-produced live Cloudflare site and routes against the GitHub build. The live site has previously differed from the repository and must not be overwritten blindly.
+2. Check Cloudflare zone, account, active Worker/Pages deployment, custom domains, bindings and a rollback snapshot.
+3. Verify `/api/intake` end-to-end with one clearly labelled controlled enquiry in nonproduction, including saved record and *inbox* receipt. Public customer enquiries must not silently disappear.
+4. Confirm phone click, website assets, mobile UX, redirects, page links, licensing/trust claims and analytics.
+5. Only then use the manually gated GitHub `Validate and Deploy Cloudflare Worker` workflow, supplying its explicit `YES` confirmation and required Cloudflare credentials. PR merges **do not** publish the live site.
+6. Check production immediately following a deliberate deployment. No domain or DNS changes without need and authorisation.
 
-## Deployment
-
-The GitHub Actions workflow at `.github/workflows/deploy.yml` verifies the build on every push to `main`, creates preview deployments for pull requests from this repository, and deploys production builds to Vercel from `main`.
-
-### Deploying a Google Studio export
-
-1. Export the production build from Google Studio (HTML/CSS/JS/assets).
-2. Replace `/public/index.html` with the exported main HTML file.
-3. Copy all exported assets into `/public` (or subfolders under `/public`) and update references in `index.html` to use local paths.
-4. Run local verification:
-   - `npm ci`
-   - `npm run build`
-   - optional runtime check: `npm start`
-5. Ensure the repository deployment values are configured (see **Required GitHub credentials** below).
-6. Open a pull request to `main` and confirm the `Deploy to Vercel` workflow passes.
-7. Merge to `main` to trigger production deployment, then validate the production domain and DNS/custom-domain health in Vercel.
-
-### Required GitHub credentials
-
-- `VERCEL_TOKEN` (secret)
-- `VERCEL_ORG_ID` (secret or variable)
-- `VERCEL_PROJECT_ID` (secret or variable)
-
-### One-time setup
-
-1. Create a Vercel project for the repository.
-2. Link the local checkout with `npx vercel link` or import the repo with the Vercel GitHub integration.
-3. Add the required Vercel secrets to the GitHub repository settings.
-4. Add any custom domain in the Vercel dashboard and update DNS to point at Vercel.
-
-### Security headers
-
-`vercel.json` defines the production response headers, including the content security policy, clickjacking protection, content-type sniffing protection, and cache control for static assets.
+See [operations/README.md](operations/README.md) for Alliance Command provisioning and security. Every client email or SMS stays a **draft** until manually approved and sent by the owner. No seeded or fabricated lead records.
