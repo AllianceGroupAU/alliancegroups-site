@@ -11,6 +11,7 @@ const staticDirectories = [
   'css',
   'images',
   'intake',
+  'ops',
   'js',
   'knowledge',
   'videos'
