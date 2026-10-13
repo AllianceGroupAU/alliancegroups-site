@@ -95,6 +95,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         const payload = await response.json().catch(() => ({}));
 
+        if (response.status === 202 && payload.duplicate) {
+          form.reset();
+          status.style.display = "block";
+          status.classList.add("show");
+          status.innerHTML = '<div style="background:#064e3b;color:#a7f3d0;border:1px solid #059669;padding:16px 20px;border-radius:8px;margin-top:16px;line-height:1.5;">We have already recorded these details. No second enquiry has been created. If the matter is urgent, call ' + callLinks() + '.</div>';
+          if (submit) submit.textContent = "Already recorded";
+          return;
+        }
         if (response.ok && payload.notificationDelivered) {
           trackLead(form, "delivered");
           form.reset();
