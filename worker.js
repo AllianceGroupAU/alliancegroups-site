@@ -226,6 +226,82 @@ async function verifyOperationsUser(request,env,fetchImpl=fetch) {
   } catch(error) { console.warn("Private access token rejected"); return null; }
 }
 
+async function operationsEvent(env,id,actor,kind,detail) {
+  await env.CRM_DB.prepare("INSERT INTO lead_events(id,lead_id,actor,kind,detail,created_ms) VALUES(?,?,?,?,?,?)")
+    .bind(crypto.randomUUID(),id,actor,kind,detail,Date.now()).run();
+}
+async function handleOperations(request,env,user) {
+  const url=new URL(request.url);
+  const path=url.pathname;
+  const stages=new Set(["new","contacted","qualified","quoted","won","lost"]);
+  const routes=new Set(["review","direct","managed","referral"]);
+  try {
+    if(path==="/api/internal/summary" && request.method==="GET") {
+      const result=await env.CRM_DB.prepare("SELECT stage,COUNT(*) AS count FROM leads GROUP BY stage").all();
+      return privateJson({stages:result.results||[],source:"verified_site_enquiries"});
+    }
+    if(path==="/api/internal/leads" && request.method==="GET") {
+      const status=url.searchParams.get("stage");
+      if(status && !stages.has(status)) return privateJson({error:"Invalid stage."},400);
+      const query=status
+        ? env.CRM_DB.prepare("SELECT * FROM leads WHERE stage=? ORDER BY priority DESC,received_ms DESC LIMIT 100").bind(status)
+        : env.CRM_DB.prepare("SELECT * FROM leads ORDER BY priority DESC,received_ms DESC LIMIT 100");
+      const result=await query.all();
+      return privateJson({leads:result.results||[]});
+    }
+    if(path==="/api/internal/drafts" && request.method==="GET") {
+      const result=await env.CRM_DB.prepare("SELECT * FROM message_drafts ORDER BY created_ms DESC LIMIT 100").all();
+      return privateJson({drafts:result.results||[]});
+    }
+    const leadMatch=path.match(/^\\/api\\/internal\\/leads\\/([a-f0-9-]{36})(?:\\/(drafts|documents))?$/);
+    if(leadMatch) {
+      const id=leadMatch[1],sub=leadMatch[2]||"";
+      const lead=await env.CRM_DB.prepare("SELECT * FROM leads WHERE id=?").bind(id).first();
+      if(!lead) return privateJson({error:"Enquiry not found."},404);
+      if(!sub && request.method==="GET") {
+        const [events,docs,drafts]=await Promise.all([
+          env.CRM_DB.prepare("SELECT * FROM lead_events WHERE lead_id=? ORDER BY created_ms DESC LIMIT 100").bind(id).all(),
+          env.CRM_DB.prepare("SELECT id,file_name,mime_type,byte_size,uploaded_ms FROM lead_documents WHERE lead_id=? ORDER BY uploaded_ms DESC").bind(id).all(),
+          env.CRM_DB.prepare("SELECT * FROM message_drafts WHERE lead_id=? ORDER BY created_ms DESC").bind(id).all()
+        ]);
+        return privateJson({lead,events:events.results||[],documents:docs.results||[],drafts:drafts.results||[]});
+      }
+      if(!sub && request.method==="PATCH") {
+        const body=await request.json().catch(()=>null);
+        if(!body || typeof body!=="object" || Array.isArray(body)) return privateJson({error:"Invalid request."},400);
+        const names=new Set(["stage","route","priority","next_action","quote_cents"]);
+        const keys=Object.keys(body);
+        if(!keys.length || keys.some(k=>!names.has(k))) return privateJson({error:"Unsupported field."},400);
+        if(body.stage!==undefined && !stages.has(body.stage)) return privateJson({error:"Invalid stage."},400);
+        if(body.route!==undefined && !routes.has(body.route)) return privateJson({error:"Invalid route."},400);
+        if(body.priority!==undefined && (!Number.isInteger(body.priority)||body.priority<0||body.priority>100)) return privateJson({error:"Invalid priority."},400);
+        if(body.quote_cents!==undefined && (!Number.isSafeInteger(body.quote_cents)||body.quote_cents<0||body.quote_cents>10000000000)) return privateJson({error:"Invalid quote value."},400);
+        if(body.next_action!==undefined && (typeof body.next_action!=="string"||body.next_action.length>1000)) return privateJson({error:"Invalid next action."},400);
+        await env.CRM_DB.prepare("UPDATE leads SET "+keys.map(k=>k+"=?").join(",")+",updated_ms=? WHERE id=?")
+          .bind(...keys.map(k=>body[k]),Date.now(),id).run();
+        await operationsEvent(env,id,user.email,"lead_updated",JSON.stringify(body));
+        return privateJson({updated:true});
+      }
+      if(sub==="drafts" && request.method==="POST") {
+        const body=await request.json().catch(()=>null);
+        if(!body || !["email","sms"].includes(body.channel) || typeof body.body!=="string" || !body.body.trim() || body.body.length>8000) return privateJson({error:"Invalid draft."},400);
+        const draftId=crypto.randomUUID();
+        await env.CRM_DB.prepare("INSERT INTO message_drafts(id,lead_id,channel,recipient,subject,body,created_by,created_ms) VALUES(?,?,?,?,?,?,?,?)")
+          .bind(draftId,id,body.channel,clean(body.recipient,254),clean(body.subject,220),body.body.trim(),user.email,Date.now()).run();
+        await operationsEvent(env,id,user.email,"draft_saved","Draft only; no message sent.");
+        return privateJson({id:draftId,status:"draft",sent:false},201);
+      }
+      if(sub==="documents" && request.method==="POST") return uploadInternalDocument(request,env,user,id);
+    }
+    const docMatch=path.match(/^\\/api\\/internal\\/documents\\/([a-f0-9-]{36})$/);
+    if(docMatch && request.method==="GET") return downloadInternalDocument(env,docMatch[1]);
+    return privateJson({error:"Not found."},404);
+  } catch(error) {
+    console.error("Internal operations failed",error);
+    return privateJson({error:"Operations temporarily unavailable."},503);
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
