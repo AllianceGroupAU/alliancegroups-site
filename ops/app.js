@@ -31,7 +31,7 @@
       leads = listing.leads || [];
       renderLeads();
       if (selectedId && leads.some(lead => lead.id === selectedId)) await viewLead(selectedId);
-      notice(leads.length + ' genuine website enquiry record' + (leads.length === 1 ? '' : 's') + ' displayed. No sample leads.');
+      notice(leads.length + ' submitted website enquiry record' + (leads.length === 1 ? '' : 's') + ' displayed. No sample leads.');
     } catch (error) {
       leads = [];
       renderLeads();
@@ -41,7 +41,7 @@
   function renderLeads() {
     const wrap = $('leads');
     wrap.replaceChildren();
-    if (!leads.length) { wrap.append(element('p','No genuine enquiries in this view.')); return; }
+    if (!leads.length) { wrap.append(element('p','No captured enquiries in this view.')); return; }
     for (const lead of leads) {
       const button = element('button',undefined,'lead' + (selectedId === lead.id ? ' active' : ''));
       button.type = 'button';
