@@ -11,7 +11,7 @@ const files = dirs.flatMap(dir => fs.readdirSync(path.join(root, dir), {withFile
   .map(item=>path.join(dir,item.name)));
 test('no published HTML uses a retired phone or suspended mailbox', () => {
   const failures = [];
-  const obsolete = /0410[\\s-]?942[\\s-]?905|0410942905|\\+61[\\s-]?410[\\s-]?942[\\s-]?905|info@alliancegroups\\.com\\.au/i;
+  const obsolete = /0410[\s-]?942[\s-]?905|0410942905|\+61[\s-]?410[\s-]?942[\s-]?905|info@alliancegroups\.com\.au/i;
   for(const name of files) {
     const content = fs.readFileSync(path.join(root,name),'utf8');
     if(obsolete.test(content)) failures.push(name);
@@ -22,7 +22,7 @@ test('private operations shell and source maps are never in robots index', () =>
   const page=fs.readFileSync('ops/index.html','utf8');
   const worker=fs.readFileSync('worker.js','utf8');
   assert.match(page,/noindex,nofollow/);
-  assert.match(worker,/url\\.pathname\\.startsWith\\("\\/ops\/"/);
+  assert.ok(worker.includes('url.pathname.startsWith("/ops/")'));
   assert.match(worker,/verifyOperationsUser/);
 });
 test('duplicate submissions do not trigger a new paid-lead analytics event', () => {
