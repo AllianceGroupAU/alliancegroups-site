@@ -191,9 +191,52 @@ export async function handleIntake(request, env, fetchImpl = fetch, ctx = null) 
   }, { status: 502 });
 }
 
+const PRIVATE_HEADERS = {"Cache-Control":"no-store, private","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff"};
+function privateJson(data,status=200) {return Response.json(data,{status,headers:PRIVATE_HEADERS});}
+function decodeSegment(value) {
+  if(typeof value!=="string" || !/^[A-Za-z0-9_-]+$/.test(value)) throw Error("Bad encoding");
+  const s=value.replace(/-/g,"+").replace(/_/g,"/");
+  return Uint8Array.from(atob(s+"=".repeat((4-s.length%4)%4)),c=>c.charCodeAt(0));
+}
+async function verifyOperationsUser(request,env,fetchImpl=fetch) {
+  const team=String(env.ACCESS_TEAM_DOMAIN||"").trim().toLowerCase();
+  const audience=String(env.ACCESS_AUD||"").trim();
+  const allowed=String(env.ACCESS_ALLOWED_EMAILS||"").toLowerCase().split(",").map(s=>s.trim()).filter(Boolean);
+  const jwt=request.headers.get("Cf-Access-Jwt-Assertion")||"";
+  if (!/^[a-z0-9-]+\\.cloudflareaccess\\.com$/.test(team) || !audience || !allowed.length || jwt.length>8192) return null;
+  const parts=jwt.split(".");
+  if(parts.length!==3) return null;
+  try {
+    const header=JSON.parse(new TextDecoder().decode(decodeSegment(parts[0])));
+    const claims=JSON.parse(new TextDecoder().decode(decodeSegment(parts[1])));
+    const now=Math.floor(Date.now()/1000);
+    if(header.alg!=="RS256"||!header.kid||claims.iss!=="https://"+team) return null;
+    if(![claims.aud].flat().includes(audience)||!Number.isFinite(claims.exp)||claims.exp<=now) return null;
+    if(claims.nbf && claims.nbf>now) return null;
+    const email=String(claims.email||"").trim().toLowerCase();
+    if(!allowed.includes(email)) return null;
+    const response=await fetchImpl("https://"+team+"/cdn-cgi/access/certs");
+    if(!response.ok) return null;
+    const certs=await response.json();
+    const jwk=(certs.keys||[]).find(key=>key.kid===header.kid&&key.kty==="RSA");
+    if(!jwk) return null;
+    const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+    const valid=await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,decodeSegment(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1]));
+    return valid?{email}:null;
+  } catch(error) { console.warn("Private access token rejected"); return null; }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/ops" || url.pathname.startsWith("/ops/") || url.pathname.startsWith("/api/internal/")) {
+      const user = await verifyOperationsUser(request,env);
+      if (!user) return privateJson({error:"Private operations access denied."},403);
+      if (!env.CRM_DB) return privateJson({error:"CRM database not provisioned."},503);
+      if (url.pathname.startsWith("/api/internal/")) return handleOperations(request,env,user);
+      if (url.pathname === "/ops") return Response.redirect(url.origin+"/ops/",302);
+      return env.ASSETS.fetch(request);
+    }
     if (url.pathname === "/api/intake") {
       if (request.method !== "POST") {
         return new Response("Method Not Allowed", { status: 405 });
