@@ -91,6 +91,37 @@ async function archiveLead(lead, fetchImpl) {
     return { ok: false, status: 0, payload: { error: String(error) } };
   }
 }
+async function saveCrmLead(lead, env) {
+  if (!env.CRM_DB) return { ok: false };
+  try {
+    const now = Date.now();
+    const data = [lead.email.toLowerCase(), lead.phone.replace(/\\D/g, ""), lead.service.toLowerCase(), lead.message.toLowerCase()].join("|");
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
+    const fingerprint = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+    const previous = await env.CRM_DB.prepare("SELECT id,notification_status FROM leads WHERE fingerprint=? AND received_ms>? ORDER BY received_ms DESC LIMIT 1").bind(fingerprint,now-900000).first();
+    if (previous) return { ok:true, duplicate:true, ...previous };
+    const id = crypto.randomUUID();
+    let priority = 35;
+    if (/urgent|emergency|today|active/i.test(lead.urgency+" "+lead.message)) priority += 25;
+    if (/asbestos|friable|silica|make.safe/i.test(lead.service+" "+lead.message)) priority += 12;
+    if (lead.phone) priority += 10;
+    if (lead.siteAddress) priority += 8;
+    await env.CRM_DB.prepare("INSERT INTO leads (id,fingerprint,received_ms,updated_ms,source,name,email,phone,company,service,site_address,urgency,message,priority) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+      .bind(id,fingerprint,now,now,"website",lead.name,lead.email,lead.phone,lead.company,lead.service,lead.siteAddress,lead.urgency,lead.message,Math.min(100,priority)).run();
+    await env.CRM_DB.prepare("INSERT INTO lead_events(id,lead_id,actor,kind,detail,created_ms) VALUES (?,?,?,?,?,?)")
+      .bind(crypto.randomUUID(),id,"system","website_intake","Real website enquiry received",now).run();
+    return { ok:true, duplicate:false, id };
+  } catch (error) {
+    console.error("CRM storage failed",error);
+    return {ok:false};
+  }
+}
+async function setCrmNotifyState(env,id,state) {
+  if (!env.CRM_DB || !id) return;
+  try { await env.CRM_DB.prepare("UPDATE leads SET notification_status=?,updated_ms=? WHERE id=?").bind(state,Date.now(),id).run(); }
+  catch (error) { console.error("CRM status update failed",error); }
+}
+
 export async function handleIntake(request, env, fetchImpl = fetch, ctx = null) {
   const raw = await request.json().catch(() => null);
   if (!raw || typeof raw !== "object") {
@@ -107,7 +138,11 @@ export async function handleIntake(request, env, fetchImpl = fetch, ctx = null) 
     return Response.json({ error: errors.join(" ") }, { status: 400 });
   }
 
-  const archivePromise = archiveLead(lead, fetchImpl);
+  const crm = await saveCrmLead(lead,env);
+  if (crm.duplicate) {
+    return Response.json({captured:true,duplicate:true,notificationDelivered:crm.notification_status==="accepted"}, {status:202});
+  }
+  const archivePromise = crm.ok ? Promise.resolve({ok:true,status:201}) : archiveLead(lead, fetchImpl);
   let emailResult;
   try {
     emailResult = await env.EMAIL.send({
@@ -121,6 +156,7 @@ export async function handleIntake(request, env, fetchImpl = fetch, ctx = null) 
     emailResult = { error: String(error) };
   }
   const delivered = !emailResult?.error;
+  if (crm.ok) await setCrmNotifyState(env,crm.id,delivered?"accepted":"failed");
 
   if (delivered) {
     if (ctx && typeof ctx.waitUntil === "function") {
