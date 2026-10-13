@@ -238,7 +238,7 @@ async function handleOperations(request,env,user) {
   try {
     if(path==="/api/internal/summary" && request.method==="GET") {
       const result=await env.CRM_DB.prepare("SELECT stage,COUNT(*) AS count FROM leads GROUP BY stage").all();
-      return privateJson({stages:result.results||[],source:"verified_site_enquiries"});
+      return privateJson({stages:result.results||[],source:"website_submissions"});
     }
     if(path==="/api/internal/leads" && request.method==="GET") {
       const status=url.searchParams.get("stage");
