@@ -95,7 +95,7 @@ async function saveCrmLead(lead, env) {
   if (!env.CRM_DB) return { ok: false };
   try {
     const now = Date.now();
-    const data = [lead.email.toLowerCase(), lead.phone.replace(/\\D/g, ""), lead.service.toLowerCase(), lead.message.toLowerCase()].join("|");
+    const data = [lead.email.toLowerCase(), lead.phone.replace(/\D/g, ""), lead.service.toLowerCase(), lead.message.toLowerCase()].join("|");
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
     const fingerprint = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
     const previous = await env.CRM_DB.prepare("SELECT id,notification_status FROM leads WHERE fingerprint=? AND received_ms>? ORDER BY received_ms DESC LIMIT 1").bind(fingerprint,now-900000).first();
@@ -129,7 +129,7 @@ export async function handleIntake(request, env, fetchImpl = fetch, ctx = null) 
   }
 
   if (clean(raw._honey || raw._hp, 200)) {
-    return Response.json({ success: true, notificationDelivered: true });
+    return Response.json({ success: true, notificationDelivered: false, ignored: true });
   }
 
   const lead = normaliseLead(raw);
@@ -203,7 +203,7 @@ async function verifyOperationsUser(request,env,fetchImpl=fetch) {
   const audience=String(env.ACCESS_AUD||"").trim();
   const allowed=String(env.ACCESS_ALLOWED_EMAILS||"").toLowerCase().split(",").map(s=>s.trim()).filter(Boolean);
   const jwt=request.headers.get("Cf-Access-Jwt-Assertion")||"";
-  if (!/^[a-z0-9-]+\\.cloudflareaccess\\.com$/.test(team) || !audience || !allowed.length || jwt.length>8192) return null;
+  if (!/^[a-z0-9-]+\.cloudflareaccess\.com$/.test(team) || !audience || !allowed.length || jwt.length>8192) return null;
   const parts=jwt.split(".");
   if(parts.length!==3) return null;
   try {
@@ -253,7 +253,7 @@ async function handleOperations(request,env,user) {
       const result=await env.CRM_DB.prepare("SELECT * FROM message_drafts ORDER BY created_ms DESC LIMIT 100").all();
       return privateJson({drafts:result.results||[]});
     }
-    const leadMatch=path.match(/^\\/api\\/internal\\/leads\\/([a-f0-9-]{36})(?:\\/(drafts|documents))?$/);
+    const leadMatch=path.match(/^\/api\/internal\/leads\/([a-f0-9-]{36})(?:\/(drafts|documents))?$/);
     if(leadMatch) {
       const id=leadMatch[1],sub=leadMatch[2]||"";
       const lead=await env.CRM_DB.prepare("SELECT * FROM leads WHERE id=?").bind(id).first();
@@ -293,7 +293,7 @@ async function handleOperations(request,env,user) {
       }
       if(sub==="documents" && request.method==="POST") return uploadInternalDocument(request,env,user,id);
     }
-    const docMatch=path.match(/^\\/api\\/internal\\/documents\\/([a-f0-9-]{36})$/);
+    const docMatch=path.match(/^\/api\/internal\/documents\/([a-f0-9-]{36})$/);
     if(docMatch && request.method==="GET") return downloadInternalDocument(env,docMatch[1]);
     return privateJson({error:"Not found."},404);
   } catch(error) {
