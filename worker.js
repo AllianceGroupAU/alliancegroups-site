@@ -302,6 +302,37 @@ async function handleOperations(request,env,user) {
   }
 }
 
+async function uploadInternalDocument(request,env,user,leadId) {
+  if(!env.CRM_FILES) return privateJson({error:"Private evidence bucket not configured."},503);
+  const form=await request.formData().catch(()=>null);
+  const file=form?.get("file");
+  const allowed=["application/pdf","image/png","image/jpeg"];
+  if(!file || typeof file.arrayBuffer!=="function" || !allowed.includes(file.type) || file.size<1 || file.size>10485760) {
+    return privateJson({error:"PDF, JPEG or PNG required, maximum 10 MB."},400);
+  }
+  const id=crypto.randomUUID();
+  const ext=file.type==="application/pdf"?"pdf":file.type==="image/png"?"png":"jpg";
+  const key="evidence/"+leadId+"/"+id+"."+ext;
+  await env.CRM_FILES.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:file.type}});
+  try {
+    await env.CRM_DB.prepare("INSERT INTO lead_documents(id,lead_id,object_key,file_name,mime_type,byte_size,uploaded_by,uploaded_ms) VALUES(?,?,?,?,?,?,?,?)")
+      .bind(id,leadId,key,clean(file.name,200)||"evidence."+ext,file.type,file.size,user.email,Date.now()).run();
+  } catch(error) {
+    await env.CRM_FILES.delete(key);
+    throw error;
+  }
+  await operationsEvent(env,leadId,user.email,"evidence_uploaded","Private evidence attached.");
+  return privateJson({id,uploaded:true},201);
+}
+async function downloadInternalDocument(env,id) {
+  if(!env.CRM_FILES) return privateJson({error:"Private evidence bucket not configured."},503);
+  const record=await env.CRM_DB.prepare("SELECT object_key,mime_type FROM lead_documents WHERE id=?").bind(id).first();
+  if(!record) return privateJson({error:"Document not found."},404);
+  const object=await env.CRM_FILES.get(record.object_key);
+  if(!object) return privateJson({error:"Evidence unavailable."},404);
+  return new Response(object.body,{headers:{...PRIVATE_HEADERS,"Content-Type":record.mime_type,"Content-Disposition":'attachment; filename="evidence"'}});
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
