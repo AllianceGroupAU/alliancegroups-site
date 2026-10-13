@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-AU"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
+<title>Alliance Command | Private Operations</title>
+<link rel="stylesheet" href="/ops/style.css"><script src="/ops/app.js" defer></script>
+</head><body><a class="skip" href="#main">Skip to leads</a>
+<header class="top"><div><div class="eyebrow">Alliance Building &amp; Hazmat Group</div><h1>ALLIANCE <span>COMMAND</span></h1></div>
+<div class="top-right"><span>PRIVATE OPERATIONS</span><a href="/">↗ Public website</a></div></header>
+<main id="main">
+<div class="intro"><div><p class="eyebrow">Revenue operations / Source of truth</p><h2>Real enquiries. Clear next actions.</h2>
+<p>Records shown here are captured enquiries, not purchased marketplace contacts or simulated leads.</p></div>
+<button id="refresh" type="button">Refresh live records</button></div>
+<p id="notice" class="notice" role="status">Connecting to your private records…</p>
+<section class="stats" aria-label="Pipeline summary">
+<div><small>New</small><strong id="count-new">–</strong></div>
+<div><small>Qualified</small><strong id="count-qualified">–</strong></div>
+<div><small>Quoted</small><strong id="count-quoted">–</strong></div>
+<div><small>Won</small><strong id="count-won">–</strong></div>
+</section>
+<div class="columns">
+<section class="panel" aria-labelledby="pipeline-title"><header><h3 id="pipeline-title">Enquiry pipeline</h3><label>Stage <select id="stage-filter"><option value="">All stages</option><option>new</option><option>contacted</option><option>qualified</option><option>quoted</option><option>won</option><option>lost</option></select></label></header>
+<div id="leads" class="leads"><p>No records loaded.</p></div></section>
+<section class="panel detail" aria-labelledby="detail-title"><header><h3 id="detail-title">Selected enquiry</h3><span id="priority"></span></header>
+<div id="empty-detail"><p>Select an enquiry to view the contact, track progress, save evidence and prepare a draft response.</p></div>
+<div id="selected-detail" hidden>
+<div id="lead-details"></div><form id="lead-update">
+<div class="fields"><label>Stage<select name="stage"><option>new</option><option>contacted</option><option>qualified</option><option>quoted</option><option>won</option><option>lost</option></select></label>
+<label>Route<select name="route"><option>review</option><option>direct</option><option>managed</option><option>referral</option></select></label></div>
+<label>Next action<input name="next_action" maxlength="1000" placeholder="Next call / inspection / quote"></label>
+<label>Indicative quoted value (AUD, ex GST)<input name="quote_dollars" type="number" step="0.01" min="0"></label>
+<button type="submit">Save stage and next action</button></form>
+<div class="divider"></div>
+<h4>Draft a response <small>Never sent automatically</small></h4>
+<form id="draft-form"><div class="fields"><label>Channel<select name="channel"><option value="email">Email</option><option value="sms">SMS</option></select></label>
+<label>To<input name="recipient" maxlength="254"></label></div>
+<label>Subject<input name="subject" maxlength="220"></label>
+<label>Message<textarea name="body" rows="5" maxlength="8000" required></textarea></label>
+<button type="submit">Save draft only</button></form>
+<div class="divider"></div><h4>Private supporting documents</h4>
+<form id="document-form"><label>PDF, JPEG or PNG, max 10 MB<input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required></label>
+<button type="submit">Attach to record</button></form><div id="documents"></div>
+<div class="divider"></div><h4>Audit history</h4><div id="events"></div>
+</div></section></div></main>
+<footer>Alliance Command V1 · Private internal access · Owner approval required for all outgoing client messages.</footer>
+</body></html>
