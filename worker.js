@@ -198,7 +198,7 @@ function decodeSegment(value) {
   const s=value.replace(/-/g,"+").replace(/_/g,"/");
   return Uint8Array.from(atob(s+"=".repeat((4-s.length%4)%4)),c=>c.charCodeAt(0));
 }
-async function verifyOperationsUser(request,env,fetchImpl=fetch) {
+export async function verifyOperationsUser(request,env,fetchImpl=fetch) {
   const team=String(env.ACCESS_TEAM_DOMAIN||"").trim().toLowerCase();
   const audience=String(env.ACCESS_AUD||"").trim();
   const allowed=String(env.ACCESS_ALLOWED_EMAILS||"").toLowerCase().split(",").map(s=>s.trim()).filter(Boolean);
