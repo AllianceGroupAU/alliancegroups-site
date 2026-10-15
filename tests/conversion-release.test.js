@@ -26,7 +26,9 @@ test('quick enquiry requires callback details but not an email address', () => {
 test('detailed intake enhancement connects to the actual form', () => {
   assert.match(read('intake/index.html'), /data-emergency-intake/);
   assert.match(read('js/intake-final.js'), /data-emergency-intake/);
-  assert.match(read('js/form-handler.js'), /Online attachments are temporarily unavailable/);
+  assert.match(read('js/form-handler.js'), /sendWithAttachments/);
+  assert.match(read('js/form-handler.js'), /markSubmissionReady/);
+  assert.doesNotMatch(read('intake/index.html'), /type="file"[^>]*disabled/);
 });
 
 test('contact number, inactive inbox and delivery metrics are consistent', () => {

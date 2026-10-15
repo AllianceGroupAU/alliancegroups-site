@@ -39,9 +39,9 @@ test('legacy UI script no longer attaches its own form delivery listeners', () =
   assert.match(source, /Form submission is intentionally centralized in js\/form-handler\.js/);
 });
 
-test('intake attachment guard enforces a 10 MB total limit', () => {
+test('intake attachment guard limits uploads to ten files, 20 MB each', () => {
   const source = fs.readFileSync('js/intake-final.js', 'utf8');
-  assert.match(source, /10 \* 1024 \* 1024/);
+  assert.match(source, /200 \* 1024 \* 1024/);
   assert.match(source, /submit\.disabled = tooLarge/);
 });
 
