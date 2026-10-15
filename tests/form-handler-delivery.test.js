@@ -15,7 +15,9 @@ test('routes public enquiry forms through the responding production Firebase han
   assert.doesNotMatch(source, /0410 942 905/);
   assert.match(source, /0403 126 276/);
   assert.match(source, /lead_recorded_unnotified/);
-  assert.match(source, /Online attachments are temporarily unavailable/);
+  assert.match(source, /sendWithAttachments/);
+  assert.match(source, /markSubmissionReady/);
+  assert.match(source, /finalizeUpload/);
 });
 
 test('Cloudflare Worker remains an independent fallback path with Firebase backup', () => {
