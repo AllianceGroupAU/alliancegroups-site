@@ -8,7 +8,11 @@ test('final homepage loads the production visual and unified delivery layers', (
   assert.match(html, /\/css\/final-home\.css/);
   assert.match(html, /\/js\/final-home\.js/);
   assert.match(html, /\/js\/form-handler\.js/);
-  assert.match(html, /Asbestos, roofing &amp;/);
+  assert.match(html, /Asbestos removal/);
+  assert.match(html, /id="hero-quote"/);
+  assert.match(html, /id="faq"/);
+  assert.match(html, /name="siteAddress"/);
+  assert.doesNotMatch(html, /<strong>07<\/strong>|<strong>128<\/strong>/);
   assert.match(html, /Request a callback/);
   assert.match(html, /\/intake\//);
 });
