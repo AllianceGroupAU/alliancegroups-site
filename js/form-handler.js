@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const ENDPOINT = "/api/intake";
+  const ENDPOINT = "https://us-central1-alliance-hub-5ed2c.cloudfunctions.net/submitLead";
   const forms = document.querySelectorAll("form:not(#portal-form)");
 
   function getStatus(form) {
