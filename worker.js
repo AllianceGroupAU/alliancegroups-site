@@ -1,3 +1,4 @@
+import {handleVoiceBridge} from './voice/bridge.js';
 const FIREBASE_FUNCTION_URL = "https://us-central1-alliance-hub-5ed2c.cloudfunctions.net/submitLead";
 const NOTIFY_TO = "la.asbestos@gmail.com";
 const NOTIFY_FROM = "website@alliancegroups.com.au";
@@ -238,7 +239,7 @@ async function handleOperations(request,env,user) {
   try {
     if(path==="/api/internal/summary" && request.method==="GET") {
       const result=await env.CRM_DB.prepare("SELECT stage,COUNT(*) AS count FROM leads GROUP BY stage").all();
-      return privateJson({stages:result.results||[],source:"website_submissions"});
+      return privateJson({stages:result.results||[],source:"genuine_enquiries"});
     }
     if(path==="/api/internal/leads" && request.method==="GET") {
       const status=url.searchParams.get("stage");
@@ -336,6 +337,7 @@ async function downloadInternalDocument(env,id) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/voice/events") return handleVoiceBridge(request,env);
     if (url.pathname === "/ops" || url.pathname.startsWith("/ops/") || url.pathname.startsWith("/api/internal/")) {
       const user = await verifyOperationsUser(request,env);
       if (!user) return privateJson({error:"Private operations access denied."},403);
