@@ -37,6 +37,10 @@ def main():
         target = BASE / asset.lstrip("/")
         if not target.is_file() or target.stat().st_size == 0:
             errors.append(f"missing asset: {target}")
+    homepage = (BASE / "index.html").read_text(encoding="utf-8")
+    for marker in ('id="quick-quote"', 'class="alliance-faq"', 'Asbestos Removal Brisbane', 'name="phone"', 'name="message"'):
+        if marker not in homepage:
+            errors.append(f"Homepage conversion element missing: {marker}")
     script = BASE / "assets/site.js"
     if not script.is_file() or "submitLead" not in script.read_text(encoding="utf-8"):
         errors.append("production Firebase intake script not present")

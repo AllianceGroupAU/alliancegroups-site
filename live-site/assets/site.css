@@ -30,3 +30,28 @@
 .proof-section{padding:82px 0;background:#0b0807;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.proof-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:start}.proof-copy h2{font-size:clamp(2.8rem,5vw,5.2rem);text-transform:uppercase;margin:16px 0 20px}.proof-copy h2 span{color:var(--amber)}.proof-copy>p{max-width:660px;color:var(--muted);font-size:17px}.proof-image{position:relative;min-height:255px;margin-top:30px;overflow:hidden;border:1px solid var(--line)}.proof-image:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0b0807d9,#0b080714)}.proof-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.proof-image span{position:absolute;z-index:1;left:18px;bottom:14px;color:var(--text);font:600 12px Oswald;letter-spacing:.12em;text-transform:uppercase}.proof-points{display:grid;grid-template-columns:1fr 1fr;gap:10px}.proof-points article{min-height:210px;padding:26px;background:#15100e;border:1px solid var(--line)}.proof-points b{color:var(--amber);font:600 14px Oswald;letter-spacing:.12em}.proof-points h3{margin:20px 0 10px;font-size:26px;text-transform:uppercase}.proof-points p{margin:0;color:var(--muted);font-size:15px}.proof-cta{display:flex;justify-content:space-between;align-items:center;gap:30px;margin-top:38px;padding:28px;border-top:3px solid var(--amber);background:#211713}.proof-cta h3{font-size:29px;text-transform:uppercase}.proof-cta p{margin:8px 0 0;color:var(--muted);max-width:650px}.proof-cta .actions{margin:0;flex:0 0 auto}@media(max-width:980px){.proof-grid{grid-template-columns:1fr}.proof-image{max-width:680px}.proof-cta{align-items:flex-start;flex-direction:column}}@media(max-width:620px){.proof-section{padding:56px 0}.proof-points{grid-template-columns:1fr}.proof-points article{min-height:0}.proof-cta{padding:22px}.proof-cta .actions{width:100%}.proof-cta .actions .btn{flex:1 1 100%}}
 
 .intake-fast{display:grid;gap:18px}.intake-fast fieldset{margin:0;padding:24px;border:1px solid var(--line);background:#15100e}.intake-fast legend{padding:0 8px;color:var(--text);font:600 28px Oswald;text-transform:uppercase}.intake-fast legend span{color:var(--amber);font-size:14px;letter-spacing:.12em;margin-right:12px}.intake-fast legend small{color:var(--muted);font:500 15px Inter;text-transform:none}.choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}.choice-button{position:relative;display:block}.choice-button input{position:absolute;opacity:0}.choice-button span{display:flex;align-items:center;min-height:56px;padding:12px 14px;border:1px solid #4a3027;background:#211713;font-weight:700;cursor:pointer}.choice-button input:checked+span{border-color:var(--amber);background:#3a2118;box-shadow:inset 4px 0 var(--amber)}.choice-button input:focus-visible+span{outline:3px solid var(--amber);outline-offset:3px}.response-note,.location-note,.email-note{margin:14px 0 0;color:var(--muted);font-size:14px}.response-note strong{color:var(--amber)}.call-time{margin-top:22px}.call-time>strong{display:block}.call-time .choice-grid{grid-template-columns:repeat(3,1fr)}.intake-photo{margin-top:16px;text-align:left}.intake-fast>.btn{justify-self:start}.intake-fast-section{padding-top:30px}@media(max-width:620px){.intake-fast fieldset{padding:18px}.intake-fast legend{font-size:25px}.choice-grid,.call-time .choice-grid{grid-template-columns:1fr}.choice-button span{min-height:52px}.intake-fast>.btn{width:100%}}
+
+/* Alliance asbestos-first conversion, Git-owned source, 17 October 2026 */
+.quick-enquiry{display:grid;gap:12px;margin:20px 0 22px;padding:20px;background:rgba(10,13,17,.32);border:1px solid rgba(255,255,255,.17);border-radius:15px}
+.quick-enquiry h3{font-size:22px;line-height:1.2;margin:0;color:#fff}
+.quick-enquiry>p{margin:0;color:#f0e7db;font-size:13px;line-height:1.5}
+.quick-enquiry .field{display:grid;gap:5px}
+.quick-enquiry label{font-size:12px;font-weight:700;color:#fbf7f0}
+.quick-enquiry input,.quick-enquiry textarea{box-sizing:border-box;display:block;width:100%;padding:12px;border:1px solid #afa69d;border-radius:7px;background:#fff;color:#1e1b18;font:inherit;line-height:1.35}
+.quick-enquiry textarea{min-height:72px;resize:vertical}
+.quick-enquiry button{min-height:49px}
+.quick-enquiry .form-note,.quick-enquiry .form-note a{font-size:12px;line-height:1.45;color:#f3e6d8}
+.quick-enquiry .form-status{color:#fff;font-size:13px;line-height:1.55}
+.quick-enquiry .form-error-help{padding:13px;border-radius:9px;background:#4a221b;color:#fff;font-size:13px}
+.quick-enquiry .form-error-help a{color:#fff;text-decoration:underline}
+.alliance-faq{padding:72px 0;background:#f2eee9;color:#211b16}
+.alliance-faq .section-head h2{font-size:clamp(29px,4vw,53px);color:#1c1815}
+.alliance-faq .section-head p{color:#50473f}
+.faq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.faq-grid details{background:#fff;padding:20px 22px;border:1px solid #ddd3c8;border-radius:12px;align-self:start}
+.faq-grid summary{font-size:16px;line-height:1.35;font-weight:750;cursor:pointer}
+.faq-grid details p{color:#514a43;font-size:14px;line-height:1.6;margin:13px 0 0}
+.faq-end{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.faq-end p{margin:0;font-weight:600}
+.faq-end .btn{white-space:nowrap}
+@media(max-width:750px){.faq-grid{grid-template-columns:1fr}.quick-enquiry{margin:15px 0;padding:15px}.alliance-faq{padding:50px 0}.faq-end{align-items:start;flex-direction:column}}
