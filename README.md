@@ -1,5 +1,7 @@
 # Alliance Building & Hazmat Group | Alliance Website
 
+> **For JARVIS and other bots:** The actual ChatGPT-built site currently visible on `alliancegroups.com.au` has been recovered under [`live-site/`](live-site/). Edit and test **that directory**, not the root-level rebuild. See [AGENTS.md](AGENTS.md) and [BOT_SITE_EDITING.md](BOT_SITE_EDITING.md). GitHub changes are not publicly deployed until the Cloudflare cutover is verified.
+
 The public site at https://www.alliancegroups.com.au/ was developed and published through a **ChatGPT-led workflow**. This repository contains Alliance's multi-page public website, Cloudflare Worker intake, Firebase archive option and the proposed private Alliance Command operations module.
 
 **Deployment target: Cloudflare (NOT Vercel).** Vercel references in old project artifacts are historical and must not be treated as the active deployment pipeline.
