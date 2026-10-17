@@ -47,7 +47,8 @@ jobs:
       - name: Validate production artifact
         run: |
           test -f dist/index.html
-          grep -Fq "Asbestos, roofing &amp;" dist/index.html
+          grep -Fq '<main' dist/index.html
+          grep -Fq '0403 126 276' dist/index.html
           test -s dist/_worker.js
           test -f dist/.assetsignore
           grep -Fxq '_worker.js' dist/.assetsignore
