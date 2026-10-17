@@ -1,0 +1,33 @@
+name: Verify bot-editable Alliance live site
+
+on:
+  pull_request:
+    paths:
+      - 'live-site/**'
+      - 'scripts/check-owned-site.py'
+      - 'AGENTS.md'
+  push:
+    branches: [main]
+    paths:
+      - 'live-site/**'
+      - 'scripts/check-owned-site.py'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify exported nine-page site and real media
+        run: python3 scripts/check-owned-site.py
+      - name: Check production JavaScript syntax
+        run: node --check live-site/assets/site.js
+      - name: Verify no assets were replaced by placeholders
+        run: |
+          test -s live-site/assets/media/alliance-logo-copper.png
+          test -s live-site/assets/media/site-protection.jpeg
+          test -s live-site/assets/media/damage-opening.jpeg
+          test -s live-site/assets/media/plaster-reinstatement.jpeg
