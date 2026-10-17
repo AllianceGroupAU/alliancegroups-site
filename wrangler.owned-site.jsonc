@@ -1,0 +1,11 @@
+{
+  "name": "alliancegroups-production",
+  "main": "workers/owned-site-worker.js",
+  "compatibility_date": "2026-10-17",
+  "workers_dev": false,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./live-site",
+    "binding": "ASSETS"
+  }
+}
