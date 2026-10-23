@@ -7,7 +7,7 @@ import sys
 
 BASE = Path("live-site")
 ROUTES = ("", "emergency-response", "roofing", "asbestos-hazmat",
-          "mould-remediation", "compliance-shield", "about", "contact", "intake")
+          "mould-remediation", "compliance-shield", "about", "contact", "intake", "blog")
 
 class AssetRefs(HTMLParser):
     def __init__(self):
@@ -41,6 +41,10 @@ def main():
     for marker in ('id="quick-quote"', 'class="alliance-faq"', 'Asbestos Removal Brisbane', 'name="phone"', 'name="message"'):
         if marker not in homepage:
             errors.append(f"Homepage conversion element missing: {marker}")
+    blog = (BASE / "blog" / "index.html").read_text(encoding="utf-8")
+    for marker in ('id="soro-blog"', 'https://app.trysoro.com/api/embed/b5fd38b4-b7bf-4377-9428-2014ee8a8f7e'):
+        if marker not in blog:
+            errors.append(f"Blog page Soro widget missing: {marker}")
     script = BASE / "assets/site.js"
     if not script.is_file() or "submitLead" not in script.read_text(encoding="utf-8"):
         errors.append("production Firebase intake script not present")
