@@ -1,0 +1,36 @@
+/* ===== Colour option: Ivory & Copper =====
+   Header, hero, page banners, the orange bands and the footer keep the dark frame.
+   Content sections switch to warm ivory with white cards. Colours only: no sizes,
+   spacing, layout, wording or images change. */
+body:before{background:linear-gradient(120deg,transparent 65%,#ed713c05 65%)}
+@L{--ink:#f6f1ea;--panel:#fff;--panel2:#fff;--line:#e3d8cb;--text:#1f1915;--muted:#625750;--white:#1f1915;--blue:#c9865f;--copper-text:#a9481a;background:#f6f1ea;color:#1f1915;border-color:#e3d8cb}
+@L+section:not(.band):not(.control-section){border-top:1px solid #e3d8cb}
+@L h2 span{color:#c0521d}
+@L .eyebrow,@L .service-kicker,@L .arrow,@L .proof-points b,@L .intake-fast legend span,@L .choice-num,@L .crumbs span,@L .checklist li:before,@L .step b,@L .trust small,@L .response-note strong,@L .photo-slot span{color:var(--copper-text)}
+@L .eyebrow:before{background:var(--copper-text)}
+@L .step b{border-color:var(--copper-text)}
+@L .lead,@L .content p,@L .content li,@L .service-card ul{color:#4a3f37}
+@L .service-card{background:linear-gradient(160deg,#fff,#fbf7f1);border-color:#e3d8cb;box-shadow:0 1px 2px #3a24160d}
+@L .service-card:before{color:#1f19150a}
+@L .service-card:hover{border-color:var(--amber);box-shadow:0 18px 40px #3a24161c}
+main>section.services-stage .service-card{border-top-color:#dccbb8}
+main>section.services-stage .service-card:hover{border-top-color:var(--amber);box-shadow:0 18px 40px #3a24161c}
+@L .step,@L .checklist li,@L .proof-points article,@L .proof-cta,@L .intake-fast fieldset,@L .site-reel{background:#fff;border-color:#e3d8cb}
+@L .step{border:1px solid #e3d8cb}
+@L .field label{color:#3a312a}
+@L .field input,@L .field select,@L .field textarea{background:#fff;border-color:#cdbfaf;color:#1f1915}
+@L .field input::placeholder,@L .field textarea::placeholder{color:#8a7e75}
+@L .field input:focus,@L .field select:focus,@L .field textarea:focus{outline-color:#ed713c55}
+@L .btn.alt{color:#1f1915;border-color:#cdbfaf;background:transparent}
+@L .text-link{border-bottom-color:#1f1915}
+@L .tag{border-color:#d6c8b8;color:#5a4e45}
+@L .notice{background:#fbefe6;color:#4a3f37}
+@L .upload{background:#fff;border-color:#cbbcab}
+@L .progress i{background:#e6dbcd}
+@L .photo-slot{background:linear-gradient(145deg,#fff,#f3ece2);border-color:#cbbcab}
+@L .choice-button span{background:#fbf7f1;border-color:#e3d8cb;color:#1f1915}
+@L .choice-button input:checked+span{background:#fdeee3}
+/* Photo and video tiles stay dark so their captions stay readable */
+@L .evidence-slot,@L .media-position,@L .video-position,@L .proof-image,@L .hero-media-placeholder{--text:#fff5e9;--muted:#c2aaa0;--white:#fffaf3;color:#fff5e9}
+/* Sections nested inside a content panel (e.g. "Quick answers" on service pages) follow the light scope */
+@L .services-stage{background:transparent}
