@@ -4,6 +4,44 @@
   let selectedId = null;
   let leads = [];
   const notice = (message) => { $('notice').textContent = message; };
+  function setView(id) {
+    for (const view of document.querySelectorAll('.page-view')) view.hidden = view.id !== id;
+    for (const tab of document.querySelectorAll('[data-view]')) {
+      const active = tab.dataset.view === id;
+      tab.setAttribute('aria-selected',String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+  }
+  for (const tab of document.querySelectorAll('[data-view]')) tab.addEventListener('click',() => setView(tab.dataset.view));
+  for (const button of document.querySelectorAll('[data-open-view]')) button.addEventListener('click',() => {
+    setView(button.dataset.openView);
+    document.querySelector('[data-view="'+button.dataset.openView+'"]')?.focus();
+  });
+  function renderToday() {
+    const target=$('today-items');
+    if(!target) return;
+    target.replaceChildren();
+    const pending=leads.filter(lead=>['new','contacted'].includes(lead.stage))
+      .sort((a,b)=>(b.received_ms||0)-(a.received_ms||0)).slice(0,5);
+    if(!pending.length) {
+      target.append(element('p','No new or contacted enquiries in the loaded records.','summary'));
+      return;
+    }
+    for(const lead of pending) {
+      const button=element('button',undefined,'lead');
+      button.type='button';
+      button.append(element('strong',(lead.name||'Name unavailable')+' · '+(lead.service||'Enquiry')));
+      button.append(element('span',(lead.stage||'unknown').toUpperCase()+' · '+date(lead.received_ms)));
+      button.addEventListener('click',()=>{setView('work-view');viewLead(lead.id);});
+      target.append(button);
+    }
+  }
+  function setCrmStatus(ok,message) {
+    const badge=$('crm-status'),label=$('crm-status-text'),system=$('system-crm-status');
+    if(badge){badge.textContent=ok?'Connected':'Unavailable';badge.classList.toggle('online',ok);badge.classList.toggle('offline',!ok);}
+    if(label) label.textContent=message;
+    if(system) system.textContent=message;
+  }
   async function api(path, options = {}) {
     const result = await fetch('/api/internal/' + path, {credentials:'same-origin',cache:'no-store',...options});
     const data = await result.json().catch(() => ({}));
@@ -29,11 +67,19 @@
       const stats = Object.fromEntries((pipeline.stages || []).map(row => [row.stage, row.count]));
       for (const stage of ['new','qualified','quoted','won']) $('count-' + stage).textContent = String(stats[stage] || 0);
       leads = listing.leads || [];
+      for(const stage of ['new','qualified','quoted','won']) {
+        const target=$('today-count-'+stage);
+        if(target) target.textContent=String(stats[stage] || 0);
+      }
+      setCrmStatus(true,'Connected');
+      renderToday();
       renderLeads();
       if (selectedId && leads.some(lead => lead.id === selectedId)) await viewLead(selectedId);
       notice(leads.length + ' submitted website enquiry record' + (leads.length === 1 ? '' : 's') + ' displayed. No sample leads.');
     } catch (error) {
       leads = [];
+      setCrmStatus(false,'Unavailable');
+      renderToday();
       renderLeads();
       notice('Private records unavailable: ' + error.message);
     }
