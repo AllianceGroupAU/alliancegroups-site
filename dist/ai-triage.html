@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PNHVYYPM84"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-PNHVYYPM84');
+    gtag('config', 'AW-18006768389');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Compliance Triage &amp; Multi-Agent Engine | Alliance Group Brisbane</title>
+  <meta name="description" content="Access Alliance Group's autonomous AI compliance engine. Instant statutory guidance on QLD WHS Regulation 2011, asbestos registers (s425), management plans (s429), and 24/7 emergency response triage." />
+  <meta name="keywords" content="AI asbestos triage, building compliance AI, QLD WHS regulation assistant, asbestos register AI check, Alliance Group AI Studio" />
+  <link rel="canonical" href="https://www.alliancegroups.com.au/ai-triage.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Alliance Group" />
+  <meta property="og:title" content="AI Compliance Triage &amp; Multi-Agent Engine | Alliance Group" />
+  <meta property="og:description" content="Instant statutory triage, ground-truth hazard verification, and multi-agent compliance directory powered by Alliance Group." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.alliancegroups.com.au/ai-triage.html" />
+  <meta property="og:image" content="https://www.alliancegroups.com.au/images/hero.jpg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    /* AI Engine Custom UI Extension */
+    .ai-chat-card {
+      background: var(--dark-card);
+      border: 1px solid rgba(42, 173, 200, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    .ai-chip {
+      background: rgba(26, 129, 154, 0.15);
+      border: 1px solid rgba(42, 173, 200, 0.4);
+      color: var(--teal-light);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-block;
+      margin: 4px;
+      text-align: left;
+    }
+    .ai-chip:hover {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal-light);
+      transform: translateY(-2px);
+    }
+    .ai-chat-window {
+      background: #060e15;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      height: 380px;
+      overflow-y: auto;
+      padding: 16px;
+      margin: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-family: 'Open Sans', sans-serif;
+    }
+    .ai-msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .ai-msg.bot {
+      background: #0f2233;
+      border-left: 3px solid var(--teal-light);
+      color: #e0f2fe;
+      align-self: flex-start;
+    }
+    .ai-msg.user {
+      background: var(--teal-dark);
+      color: #ffffff;
+      align-self: flex-end;
+    }
+    .ai-input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .ai-input {
+      flex: 1;
+      background: #060e15;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #ffffff;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+    }
+    .ai-input:focus {
+      outline: none;
+      border-color: var(--teal-light);
+    }
+    .agent-card {
+      background: rgba(15, 30, 45, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.25s ease;
+    }
+    .agent-card:hover {
+      border-color: var(--teal-light);
+      transform: translateY(-4px);
+    }
+    .agent-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      background: rgba(42, 173, 200, 0.15);
+      color: var(--teal-light);
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====== NAVIGATION ====== -->
+    <!-- Navigation Header -->
+  <header id="navbar" class="navbar scrolled">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo" aria-label="Alliance Group Home">
+        <svg class="logo-svg" viewBox="0 0 80 70" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="80" y2="70" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0D3B5C"/>
+              <stop offset="100%" stop-color="#1A819A"/>
+            </linearGradient>
+          </defs>
+          <path d="M40 5 L75 65 H5 Z" fill="none" stroke="url(#logoGrad)" stroke-width="7" stroke-linejoin="round"/>
+          <path d="M22 65 Q40 42 58 65" fill="none" stroke="url(#logoGrad)" stroke-width="7" stroke-linecap="round"/>
+        </svg>
+        <div class="logo-text">
+          <span class="logo-name">ALLIANCE <strong>GROUP</strong></span>
+          <span class="logo-tagline">STRUCTURE. SAFETY. STANDARDS.</span>
+        </div>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        
+        <div class="nav-item dropdown">
+          <a href="asbestos-services.html">Asbestos</a>
+          <div class="dropdown-menu">
+            <a href="asbestos-services.html">All Asbestos Services</a>
+            <a href="asbestos-removal-brisbane.html">Asbestos Removal Brisbane</a>
+            <a href="asbestos-removal-gold-coast.html">Gold Coast Asbestos Removal</a>
+            <a href="asbestos-removal-sunshine-coast.html">Sunshine Coast Asbestos Removal</a>
+            <a href="asbestos-removal-moreton-bay.html">Moreton Bay Asbestos Removal</a>
+            <a href="asbestos-removal-ipswich.html">Ipswich Asbestos Removal</a>
+            <a href="asbestos-roof-removal.html">Asbestos Roof Removal</a>
+            <a href="asbestos-management-plans-queensland.html">Asbestos Management Plans</a>
+            <a href="asbestos-registers-queensland.html">Asbestos Registers QLD</a>
+          </div>
+        </div>
+
+        <div class="nav-item dropdown">
+          <a href="construction-services.html">Remediation &amp; Defects</a>
+          <div class="dropdown-menu">
+            <a href="construction-services.html">Construction &amp; Remediation</a>
+            <a href="building-remediation-brisbane.html">Building Remediation Brisbane</a>
+            <a href="building-defects-brisbane.html">Building Defect Rectification</a>
+            <a href="building-defect-inspections.html">Building Defect Inspections</a>
+            <a href="building-compliance-brisbane.html">Building Compliance Audit</a>
+            <a href="emergency-building-response.html">Emergency Building Response</a>
+          </div>
+        </div>
+
+        <div class="nav-item dropdown">
+          <a href="roof-repairs-brisbane.html">Roofing &amp; Ingress</a>
+          <div class="dropdown-menu">
+            <a href="roof-repairs-brisbane.html">Roof Repairs Brisbane</a>
+            <a href="water-ingress-investigation.html">Water Ingress Investigation</a>
+            <a href="roof-leak-investigation.html">Roof Leak Investigation</a>
+            <a href="roof-inspection-brisbane.html">Roof Inspection Brisbane</a>
+            <a href="roof-restoration-brisbane.html">Roof Restoration Brisbane</a>
+            <a href="commercial-roof-repairs.html">Commercial Roof Repairs</a>
+            <a href="emergency-roof-repairs.html">Emergency Roof Repairs</a>
+          </div>
+        </div>
+
+        <div class="nav-item dropdown">
+          <a href="compliance-shield.html">Compliance Shield™</a>
+          <div class="dropdown-menu">
+            <a href="compliance-shield.html">Compliance Shield™ Overview</a>
+            <a href="app.html">Interactive App &amp; Portal</a>
+            <a href="compliance-shield-portal.html">Document Upload Portal</a>
+            <a href="risk-checker.html">Risk &amp; Scope Checker</a>
+            <a href="ai-triage.html">AI Compliance Triage</a>
+          </div>
+        </div>
+
+        <a href="knowledge/index.html">Knowledge</a>
+        <a href="case-studies/index.html">Case Studies</a>
+        <a href="projects.html">Projects</a>
+        <a href="reviews.html">Reviews</a>
+        <a href="contact.html" class="nav-cta">Get a Quote</a>
+      </nav>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+      <a href="index.html" class="mobile-link">Home</a>
+      <a href="asbestos-services.html" class="mobile-link">Asbestos Services</a>
+      <a href="construction-services.html" class="mobile-link">Remediation &amp; Defects</a>
+      <a href="roof-repairs-brisbane.html" class="mobile-link">Roofing &amp; Ingress</a>
+      <a href="compliance-shield.html" class="mobile-link">Compliance Shield™</a>
+      <a href="app.html" class="mobile-link">Interactive App</a>
+      <a href="risk-checker.html" class="mobile-link">Risk &amp; Scope Checker</a>
+      <a href="knowledge/index.html" class="mobile-link">Knowledge Centre</a>
+      <a href="case-studies/index.html" class="mobile-link">Case Studies</a>
+      <a href="projects.html" class="mobile-link">Projects</a>
+      <a href="reviews.html" class="mobile-link">Reviews</a>
+      <a href="contact.html" class="mobile-link mobile-cta">Get a Quote — 0403 126 276</a>
+    </div>
+  </header>
+
+  <!-- ====== HERO BANNER ====== -->
+  <section class="hero hero-subpage-md">
+    <div class="hero-bg hero-bg-hero" role="img" aria-label="Alliance Compliance Triage"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span>Alliance Triage Engine | <strong>Statutory Hazard &amp; Compliance Intelligence</strong></span>
+      </div>
+      <h1 class="hero-title">
+        <span class="hero-line">Statutory Compliance &amp;</span>
+        <span class="hero-line hero-line-accent">Hazard Triage Engine.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Ground-truth statutory verification under QLD WHS Regulation 2011. Instant diagnostic answers for Asbestos Registers (s425), Management Plans (s429), and 24/7 priority emergency response.
+      </p>
+      <div class="hero-actions">
+        <a href="#live-triage" class="btn btn-primary">Launch Triage Assistant</a>
+        <a href="tel:0403126276" class="btn btn-outline">Direct Line: 0403 126 276</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LIVE INTERACTIVE AI TRIAGE ENGINE ====== -->
+  <section id="live-triage" class="section-pad bg-dark">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag light">Interactive Intelligence</div>
+        <h2 class="section-title light">Live Statutory Triage Assistant</h2>
+        <div class="teal-divider center"></div>
+        <p class="section-intro light">Ask any question regarding hazardous materials, building defects, or statutory compliance in Queensland.</p>
+      </div>
+
+      <!-- Quick Prompt Chips -->
+      <div class="ai-chip-container">
+        <button class="ai-chip" onclick="sendChipPrompt('What are the statutory requirements for an Asbestos Register under s425 in Queensland?')">What is an Asbestos Register (s425)?</button>
+        <button class="ai-chip" onclick="sendChipPrompt('When is an Asbestos Management Plan mandatory under s429?')">When is an AMP mandatory (s429)?</button>
+        <button class="ai-chip" onclick="sendChipPrompt('Can damaged Super Six asbestos roofing be repaired or must it be removed?')">Can asbestos roofing be repaired?</button>
+        <button class="ai-chip" onclick="sendChipPrompt('How does the $395 Compliance Shield document review work?')">How does the $395 review work?</button>
+        <button class="ai-chip" onclick="sendChipPrompt('What are the penalties for PCBU non-compliance in Queensland?')">Penalties for non-compliance?</button>
+      </div>
+
+      <!-- Chat Interface -->
+      <div class="ai-chat-card-wrap">
+        <div class="ai-chat-card">
+          <div class="ai-header-flex">
+            <div class="ai-header-left">
+              <span class="ai-pulse-dot"></span>
+              <strong class="ai-header-title">Alliance Triage Assistant</strong>
+            </div>
+            <span class="ai-header-status">STATUS: ONLINE (QLD WHS REG 2011)</span>
+          </div>
+
+          <div class="ai-chat-window" id="aiChatWindow">
+            <div class="ai-msg bot">
+              <strong>Alliance Compliance Engine:</strong><br>
+              G'day! I am the Alliance Group Compliance &amp; Hazard Triage Assistant. How can I assist you with your property risk assessment, Asbestos Register (s425), or emergency make-safe today?
+            </div>
+          </div>
+
+          <div class="ai-input-row">
+            <input type="text" class="ai-input" id="aiUserQuery" placeholder="Type your compliance, asbestos, or roofing question here..." onkeypress="handleAiKeyPress(event)" />
+            <button class="btn btn-primary" onclick="submitAiQuery()">
+              <span>Send Query</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SPECIALIST DIAGNOSTIC AGENTS DIRECTORY ====== -->
+  <section class="section-pad bg-light">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag">Diagnostic Architecture</div>
+        <h2 class="section-title">Specialist Diagnostic Architecture</h2>
+        <div class="teal-divider center"></div>
+        <p class="section-intro">Our compliance engine routes inquiries across statutory, diagnostic, hygiene, and emergency make-safe disciplines.</p>
+      </div>
+
+      <div class="agents-grid">
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 01 · STATUTORY</span>
+          <h4 class="agent-card-title">WHS Standards Statutory Auditor</h4>
+          <p class="agent-card-desc">Audits s425 Asbestos Registers and s429 Management Plans against Queensland Code of Practice 2021 standards.</p>
+        </div>
+
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 02 · HYGIENE</span>
+          <h4 class="agent-card-title">NATA Lab Sample Triage</h4>
+          <p class="agent-card-desc">Interprets Polarised Light Microscopy (PLM) reports, fiber counts (&lt;0.01 fibers/mL), and clearance certificates.</p>
+        </div>
+
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 03 · ESTIMATION</span>
+          <h4 class="agent-card-title">Hazard Cost &amp; Scope Estimator</h4>
+          <p class="agent-card-desc">Generates fixed estimates per m² for bonded and Class A friable asbestos removal and HEPA negative-air containment.</p>
+        </div>
+
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 04 · EMERGENCY</span>
+          <h4 class="agent-card-title">24/7 Make-Safe Dispatcher</h4>
+          <p class="agent-card-desc">Immediately prioritizes storm damage, collapsed ceiling materials, and water ingress emergencies across SEQ.</p>
+        </div>
+
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 05 · STRUCTURAL</span>
+          <h4 class="agent-card-title">Building Defect &amp; Ingress Auditor</h4>
+          <p class="agent-card-desc">Analyzes concrete spalling, membrane failure, timber rot, and foundation movement against Australian Standards.</p>
+        </div>
+
+        <div class="agent-card agent-card-light">
+          <span class="agent-badge">DISCIPLINE 06 · LEGAL</span>
+          <h4 class="agent-card-title">PCBU Indemnity Guardian</h4>
+          <p class="agent-card-desc">Ensures property managers and body corporate committees maintain legally defensible records with zero gap liability.</p>
+        </div>
+      </div>
+
+      <div class="text-center mt-48">
+        <a href="#live-triage" class="btn btn-primary">Launch Triage Assistant</a>
+        <a href="tel:0403126276" class="btn btn-outline-dark">Direct Line: 0403 126 276</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+    <!-- Footer -->
+  <footer class="footer bg-dark">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo-name">ALLIANCE <strong>GROUP</strong></div>
+          <p class="footer-tagline">Structure. Safety. Standards. &bull; Priority Response. Not From Zero.</p>
+          <p class="footer-desc">Class A &amp; B Licensed Asbestos Removal &bull; WHS Certified & Compliant &bull; South East Queensland.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Asbestos &amp; Hazmat</h4>
+          <ul>
+            <li><a href="asbestos-services.html">Asbestos Testing &amp; Removal</a></li>
+            <li><a href="asbestos-removal-brisbane.html">Brisbane Asbestos Removal</a></li>
+            <li><a href="asbestos-removal-gold-coast.html">Gold Coast Asbestos Removal</a></li>
+            <li><a href="asbestos-removal-sunshine-coast.html">Sunshine Coast Removal</a></li>
+            <li><a href="asbestos-roof-removal.html">Asbestos Roof Removal</a></li>
+            <li><a href="asbestos-management-plans-queensland.html">Asbestos Management Plans</a></li>
+            <li><a href="asbestos-registers-queensland.html">Asbestos Registers QLD</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Remediation &amp; Roofing</h4>
+          <ul>
+            <li><a href="construction-services.html">Construction &amp; Remediation</a></li>
+            <li><a href="building-remediation-brisbane.html">Building Remediation</a></li>
+            <li><a href="building-defects-brisbane.html">Building Defect Rectification</a></li>
+            <li><a href="building-defect-inspections.html">Defect Inspections</a></li>
+            <li><a href="water-ingress-investigation.html">Water Ingress Diagnostics</a></li>
+            <li><a href="roof-repairs-brisbane.html">Roof Repairs Brisbane</a></li>
+            <li><a href="roof-leak-investigation.html">Roof Leak Investigation</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Compliance &amp; Resources</h4>
+          <ul>
+            <li><a href="compliance-shield.html">Compliance Shield™</a></li>
+            <li><a href="app.html">Interactive App &amp; Portal</a></li>
+            <li><a href="risk-checker.html">Risk &amp; Scope Checker</a></li>
+            <li><a href="ai-triage.html">AI Compliance Triage</a></li>
+            <li><a href="knowledge/index.html">Knowledge Centre</a></li>
+            <li><a href="case-studies/index.html">Case Studies</a></li>
+            <li><a href="projects.html">Completed Projects</a></li>
+            <li><a href="reviews.html">Client Reviews</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact Alliance</h4>
+          <p class="footer-contact-item">&#128222; <a href="tel:0403126276" style="color:inherit;text-decoration:underline;">0403 126 276</a></p>
+          <p class="footer-contact-item">&#9993; la.asbestos@gmail.com</p>
+          <p class="footer-contact-item">&#128205; South East Queensland (Brisbane, Gold Coast, Sunshine Coast, Moreton Bay, Ipswich)</p>
+          <div style="margin-top: 12px;">
+            <a href="contact.html" class="btn btn-primary btn-sm" style="font-size:0.8rem;padding:8px 16px;">Request Quote / Inspection</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <span id="footerYear">2026</span> Alliance Building &amp; Hazmat Group Pty Ltd. All Rights Reserved.</p>
+        <div class="footer-legal">
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms &amp; Conditions</a>
+          <a href="refunds.html">Refund Policy</a>
+          <a href="shipping.html">Shipping &amp; Delivery</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive AI Logic Script -->
+  <script>
+    const KNOWLEDGE_RESPONSES = {
+      's425': {
+        text: "Under section 425 of the Work Health and Safety Regulation 2011 (QLD), a Person Conducting a Business or Undertaking (PCBU) must ensure that an Asbestos Register is prepared and kept at the workplace for all buildings constructed prior to 31 December 1989. The register must record all identified or presumed asbestos, its location, type, and current condition.",
+        action: '<div class="mt-12"><a href="compliance-shield.html#document-review" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Order $395 Document Review</a><a href="asbestos-services.html#prod-register" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Commercial Register (From $550)</a></div>'
+      },
+      's429': {
+        text: "Under section 429 of the QLD WHS Regulation 2011, if asbestos is identified or presumed at a workplace, the PCBU must ensure a written Asbestos Management Plan (AMP) is established and maintained. It must detail decisions on managing risks, reasons for decisions, safe work procedures, and a timetable for reviewing and revising the plan every 5 years.",
+        action: '<div class="mt-12"><a href="compliance-shield.html#document-review" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Audit My AMP ($395 Review)</a><a href="tel:0403126276" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Call 0403 126 276</a></div>'
+      },
+      'roofing': {
+        text: "Under Queensland safety regulations, high-pressure water cleaning or drilling into asbestos cement roofing (Super Six) is illegal. While minor sealing can be performed under strict control, deteriorated or leaking asbestos roofs should be safely removed by a Class B or Class A licensed contractor and replaced with modern Colorbond steel.",
+        action: '<div class="mt-12"><a href="contact.html?service=asbestos-removal" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Get Roof Removal Quote</a><a href="asbestos-services.html#prod-site-test" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Book On-Site Inspection ($195)</a></div>'
+      },
+      '395': {
+        text: "The Compliance Shield™ $395 Document Review is a fixed-fee audit where Alliance Group's licensed directors examine your full compliance documentation (registers, AMP, clearance certificates). You receive a written gap analysis report in 48 hours identifying missing statutory items and legal risks.",
+        action: '<div class="mt-12"><a href="contact.html?service=compliance-audit" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Book $395 Review Now</a><a href="compliance-shield/index.html" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">View Full Deliverables</a></div>'
+      },
+      'penalties': {
+        text: "Under Queensland WHS law, failure to maintain a compliant Asbestos Register or Management Plan carries maximum fines of up to $30,000 for individuals and $150,000 for corporations, along with immediate WorkSafe prohibition notices stopping site operations.",
+        action: '<div class="mt-12"><a href="risk-checker.html" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Check Property Risk</a><a href="tel:0403126276" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Call 0403 126 276</a></div>'
+      },
+      'testing': {
+        text: "AUasbestos by Alliance Group provides certified on-site hazardous material testing across South East Queensland: (1) Residential On-Site Inspection & NATA Sample Test ($195 AUD) or (2) Comprehensive Whole-Home Hazard Audit with up to 3 samples ($380 AUD). Results are delivered digitally in 24–48 hours.",
+        action: '<div class="mt-12"><a href="asbestos-services.html#prod-site-test" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Book On-Site Test ($195)</a><a href="asbestos-services.html#prod-full-audit" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Whole-Home Audit ($380)</a></div>'
+      }
+    };
+
+    function sendChipPrompt(promptText) {
+      document.getElementById('aiUserQuery').value = promptText;
+      submitAiQuery();
+    }
+
+    function handleAiKeyPress(e) {
+      if (e.key === 'Enter') {
+        submitAiQuery();
+      }
+    }
+
+    function submitAiQuery() {
+      const input = document.getElementById('aiUserQuery');
+      const query = input.value.trim();
+      if (!query) return;
+
+      const chatWindow = document.getElementById('aiChatWindow');
+      
+      // Append user query
+      const userDiv = document.createElement('div');
+      userDiv.className = 'ai-msg user';
+      userDiv.innerText = query;
+      chatWindow.appendChild(userDiv);
+      input.value = '';
+
+      // Triage matching
+      const lower = query.toLowerCase();
+      let matchedObj = null;
+
+      if (lower.includes('425') || lower.includes('register')) {
+        matchedObj = KNOWLEDGE_RESPONSES['s425'];
+      } else if (lower.includes('429') || lower.includes('management plan') || lower.includes('amp')) {
+        matchedObj = KNOWLEDGE_RESPONSES['s429'];
+      } else if (lower.includes('roof') || lower.includes('repair') || lower.includes('super six')) {
+        matchedObj = KNOWLEDGE_RESPONSES['roofing'];
+      } else if (lower.includes('395') || lower.includes('review') || lower.includes('shield')) {
+        matchedObj = KNOWLEDGE_RESPONSES['395'];
+      } else if (lower.includes('penalty') || lower.includes('fine') || lower.includes('law')) {
+        matchedObj = KNOWLEDGE_RESPONSES['penalties'];
+      } else if (lower.includes('test') || lower.includes('sample') || lower.includes('price') || lower.includes('cost') || lower.includes('inspect')) {
+        matchedObj = KNOWLEDGE_RESPONSES['testing'];
+      }
+
+      const defaultText = "Under Queensland Work Health and Safety Regulation 2011, all commercial properties constructed prior to 1990 require certified asbestos auditing. Alliance Group provides NATA testing ($195 On-site / $380 Whole-Home Audit), Class A & B removal, and $395 Compliance Shield™ reviews across South East Queensland.";
+      const defaultAction = '<div class="mt-12"><a href="contact.html" class="btn btn-primary btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;margin-right:8px;">Request a Quote</a><a href="tel:0403126276" class="btn btn-outline-light btn-sm" style="display:inline-block;padding:6px 14px;font-size:0.8rem;border-radius:6px;">Call 0403 126 276</a></div>';
+
+      const responseHtml = matchedObj ? 
+        `<strong>Alliance Compliance Engine:</strong><br>${matchedObj.text}${matchedObj.action}` :
+        `<strong>Alliance Compliance Engine:</strong><br>${defaultText}${defaultAction}`;
+
+      setTimeout(() => {
+        const botDiv = document.createElement('div');
+        botDiv.className = 'ai-msg bot';
+        botDiv.innerHTML = responseHtml;
+        chatWindow.appendChild(botDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }, 350);
+
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+  </script>
+
+  <script src="js/form-handler.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
