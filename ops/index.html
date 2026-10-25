@@ -2,16 +2,49 @@
 <html lang="en-AU"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
-<title>Alliance Command | Private Operations</title>
+<title>Alliance Command | JARVIS Operations</title>
 <link rel="stylesheet" href="/ops/style.css"><script src="/ops/app.js" defer></script>
-</head><body><a class="skip" href="#main">Skip to leads</a>
+</head><body><a class="skip" href="#main">Skip to dashboard</a>
 <header class="top"><div><div class="eyebrow">Alliance Building &amp; Hazmat Group</div><h1>ALLIANCE <span>COMMAND</span></h1></div>
 <div class="top-right"><span>PRIVATE OPERATIONS</span><a href="/">↗ Public website</a></div></header>
-<main id="main">
-<div class="intro"><div><p class="eyebrow">Revenue operations / Source of truth</p><h2>Real enquiries. Clear next actions.</h2>
-<p>Records shown here are captured enquiries, not purchased marketplace contacts or simulated leads.</p></div>
+<main id="main" class="command">
+<nav class="module-nav" aria-label="JARVIS modules" role="tablist">
+<button type="button" role="tab" aria-selected="true" aria-controls="today-view" data-view="today-view">Today</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="work-view" data-view="work-view">Work</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="agents-view" data-view="agents-view">Agents</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="clients-view" data-view="clients-view">Clients &amp; sites</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="schedule-view" data-view="schedule-view">Schedule</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="money-view" data-view="money-view">Money</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="documents-view" data-view="documents-view">Documents</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="knowledge-view" data-view="knowledge-view">Knowledge</button>
+<button type="button" role="tab" aria-selected="false" aria-controls="system-view" data-view="system-view">System</button>
+</nav>
+<p id="notice" class="notice" role="status">Connecting to private records…</p>
+<section class="page-view" id="today-view" role="tabpanel">
+<div class="intro"><div><p class="eyebrow">JARVIS · Alliance operations</p><h2>Today’s command view</h2>
+<p>One private workspace for the work and systems that have verified data connected.</p></div>
 <button id="refresh" type="button">Refresh live records</button></div>
-<p id="notice" class="notice" role="status">Connecting to your private records…</p>
+<section class="stats" aria-label="Captured enquiry summary">
+<div><small>New enquiries</small><strong id="today-count-new">–</strong></div>
+<div><small>Qualified</small><strong id="today-count-qualified">–</strong></div>
+<div><small>Quoted</small><strong id="today-count-quoted">–</strong></div>
+<div><small>Won</small><strong id="today-count-won">–</strong></div>
+</section>
+<div class="home-grid">
+<section class="panel"><header><h3>Next actions</h3><span class="source-label">CRM source</span></header>
+<div id="today-items"><p>Loading captured enquiries…</p></div></section>
+<section class="panel"><header><h3>Connected systems</h3><span id="crm-status" class="status-pill">Checking</span></header>
+<p class="summary">Only verified live connections are shown as available. No sample activity is displayed.</p>
+<ul class="connection-list">
+<li><span>Alliance CRM enquiries</span><strong id="crm-status-text">Checking</strong></li>
+<li><span>Schedule</span><strong class="unavailable">Not connected</strong></li>
+<li><span>Payments and accounting</span><strong class="unavailable">Not connected</strong></li>
+<li><span>JARVIS agent runtime</span><strong class="unavailable">Not verified</strong></li>
+</ul></section></div>
+</section>
+<section class="page-view" id="work-view" role="tabpanel" hidden>
+<div class="intro"><div><p class="eyebrow">Source of truth · captured enquiries</p><h2>Work board</h2>
+<p>Records shown here are submitted enquiries, not purchased marketplace contacts or simulated activity.</p></div></div>
 <section class="stats" aria-label="Pipeline summary">
 <div><small>New</small><strong id="count-new">–</strong></div>
 <div><small>Qualified</small><strong id="count-qualified">–</strong></div>
@@ -22,7 +55,7 @@
 <section class="panel" aria-labelledby="pipeline-title"><header><h3 id="pipeline-title">Enquiry pipeline</h3><label>Stage <select id="stage-filter"><option value="">All stages</option><option>new</option><option>contacted</option><option>qualified</option><option>quoted</option><option>won</option><option>lost</option></select></label></header>
 <div id="leads" class="leads"><p>No records loaded.</p></div></section>
 <section class="panel detail" aria-labelledby="detail-title"><header><h3 id="detail-title">Selected enquiry</h3><span id="priority"></span></header>
-<div id="empty-detail"><p>Select an enquiry to view the contact, track progress, save evidence and prepare a draft response.</p></div>
+<div id="empty-detail"><p>Select an enquiry to view contact details, progress, evidence and a draft response.</p></div>
 <div id="selected-detail" hidden>
 <div id="lead-details"></div><form id="lead-update">
 <div class="fields"><label>Stage<select name="stage"><option>new</option><option>contacted</option><option>qualified</option><option>quoted</option><option>won</option><option>lost</option></select></label>
@@ -41,6 +74,15 @@
 <form id="document-form"><label>PDF, JPEG or PNG, max 10 MB<input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required></label>
 <button type="submit">Attach to record</button></form><div id="documents"></div>
 <div class="divider"></div><h4>Audit history</h4><div id="events"></div>
-</div></section></div></main>
-<footer>Alliance Command V1 · Private internal access · Owner approval required for all outgoing client messages.</footer>
+</div></section></div>
+</section>
+<section class="page-view" id="agents-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">JARVIS</p><h2>Agents</h2><p>Agent activity is shown only when the runtime provides verified status and task records.</p></div></div><section class="panel"><h3>Runtime status</h3><p class="unavailable-box">Not verified · no live agent status feed is connected to this dashboard.</p></section></section>
+<section class="page-view" id="clients-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">CRM</p><h2>Clients &amp; sites</h2><p>Current connected records are captured enquiries. A verified client and site register is not connected yet.</p></div></div><section class="panel"><h3>Client and site records</h3><p class="unavailable-box">Unavailable · no separate verified client/site register is connected. Enquiry details remain available in Work.</p><button type="button" data-open-view="work-view">Open Work</button></section></section>
+<section class="page-view" id="schedule-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">Planning</p><h2>Schedule</h2><p>Appointments and crew availability require a verified calendar and capacity source.</p></div></div><section class="panel"><h3>Schedule connection</h3><p class="unavailable-box">Not connected · no calendar or crew availability is being reported.</p></section></section>
+<section class="page-view" id="money-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">Finance</p><h2>Money</h2><p>Only reconciled invoice and payment records belong in this view.</p></div></div><section class="panel"><h3>Financial records</h3><p class="unavailable-box">Not connected · no accounting or payment source is connected. No balances or collections are inferred.</p></section></section>
+<section class="page-view" id="documents-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">Records</p><h2>Documents</h2><p>Private evidence is attached to its enquiry and opened from that record.</p></div></div><section class="panel"><h3>Evidence library</h3><p>Open a Work record to view or attach its private supporting documents and audit history.</p><button type="button" data-open-view="work-view">Open Work</button></section></section>
+<section class="page-view" id="knowledge-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">Approved sources</p><h2>Knowledge</h2><p>Business procedures and claims need source, owner and review status before JARVIS can use them as verified.</p></div></div><section class="panel"><h3>Knowledge source registry</h3><p class="unavailable-box">Not connected · no approved knowledge registry is available to this dashboard.</p></section></section>
+<section class="page-view" id="system-view" role="tabpanel" hidden><div class="intro"><div><p class="eyebrow">Service health</p><h2>System</h2><p>Unavailable and unverified systems are labelled plainly; they are never shown as green or zero.</p></div></div><section class="panel"><h3>Current connection checks</h3><ul class="connection-list"><li><span>Private CRM API</span><strong id="system-crm-status">Checking</strong></li><li><span>Schedule provider</span><strong class="unavailable">Not connected</strong></li><li><span>Finance provider</span><strong class="unavailable">Not connected</strong></li><li><span>Agent runtime</span><strong class="unavailable">Not verified</strong></li></ul></section></section>
+</main>
+<footer>Alliance Command · Private internal access · Client messages remain drafts until owner approval.</footer>
 </body></html>
