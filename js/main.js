@@ -315,7 +315,7 @@
           'renovation': {
             level: 'high', levelLabel: '🔴 CRITICAL PCBU LIABILITY',
             title: 'Mandatory Asbestos Management Plan & Audit (s425/s429)',
-            desc: 'Commercial properties constructed pre-1980 require an active Asbestos Register and Management Plan under QLD WHS Regulation 2011 before any contractor can enter.',
+            desc: 'Queensland workplace buildings generally need an asbestos register unless the building was constructed after 31 December 1989 and no asbestos has been identified or is likely to be present. Different rules apply to domestic premises.',
             checks: [
               { icon: '⚖️', text: 'Statutory Asbestos Register & AMP Audit ($395 Document Review)' },
               { icon: '🔬', text: 'Full Hazardous Material Site Survey' },
