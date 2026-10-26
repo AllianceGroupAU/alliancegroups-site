@@ -150,6 +150,9 @@
   document.querySelectorAll('a[href^="tel:"], a[href^="mailto:"]').forEach(link => link.addEventListener('click', () => {
     track(link.getAttribute('href').startsWith('tel:') ? 'phone_click' : 'email_click', { page_path: location.pathname });
   }));
+  document.querySelectorAll('a[data-review-link]').forEach(link => link.addEventListener('click', () => {
+    track('review_click', { page_path: location.pathname, link_location: link.dataset.reviewLink });
+  }));
 
   document.querySelectorAll('.enquiry-form').forEach(form => {
     let busy = false;

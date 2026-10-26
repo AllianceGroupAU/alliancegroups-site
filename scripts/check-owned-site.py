@@ -45,6 +45,14 @@ def main():
     for marker in ('id="soro-blog"', 'https://app.trysoro.com/api/embed/b5fd38b4-b7bf-4377-9428-2014ee8a8f7e'):
         if marker not in blog:
             errors.append(f"Blog page Soro widget missing: {marker}")
+    review_url = "https://g.page/r/CThhguWLkpdYEBM/review"
+    for route in ROUTES:
+        page = (BASE / route / "index.html").read_text(encoding="utf-8")
+        if f'href="{review_url}"' not in page or 'data-review-link="footer"' not in page:
+            errors.append(f"{route or 'home'}: footer Google review link missing")
+    contact = (BASE / "contact" / "index.html").read_text(encoding="utf-8")
+    if 'data-review-link="contact"' not in contact:
+        errors.append("Contact page Google review prompt missing")
     script = BASE / "assets/site.js"
     if not script.is_file() or "submitLead" not in script.read_text(encoding="utf-8"):
         errors.append("production Firebase intake script not present")
