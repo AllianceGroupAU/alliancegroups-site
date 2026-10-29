@@ -114,6 +114,7 @@
     return { id: session.id, fileCount: files.length };
   }
 
+
   function track(event, data) {
     // Never include names, contact details, addresses, messages or filenames.
     if (typeof window !== 'undefined') {
@@ -126,26 +127,44 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = { makeLead, checkFiles, apiRequest, submitIntake };
   if (typeof document === 'undefined') return;
 
-  const menu = document.querySelector('.menu');
-  const navigation = document.querySelector('#main-navigation');
-  function closeMenu() {
-    navigation?.classList.remove('open');
-    menu?.setAttribute('aria-expanded', 'false');
-    menu?.setAttribute('aria-label', 'Open navigation');
+  // Mobile menu (a <details> element, so it also works without JavaScript)
+  const mnav = document.querySelector('.mnav');
+  if (mnav) {
+    const close = () => { mnav.open = false; };
+    mnav.querySelectorAll('a').forEach(link => link.addEventListener('click', close));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && mnav.open) { close(); mnav.querySelector('summary')?.focus(); } });
+    document.addEventListener('click', event => { if (mnav.open && !mnav.contains(event.target)) close(); });
   }
-  menu?.addEventListener('click', () => {
-    const isOpen = navigation.classList.toggle('open');
-    menu.setAttribute('aria-expanded', String(isOpen));
-    menu.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+
+  // Mark the current section in the navigation
+  const here = location.pathname.replace(/index\.html$/, '');
+  document.querySelectorAll('nav.main a, .mnav nav a').forEach(link => {
+    const target = link.getAttribute('href');
+    if (target && target !== '/' && here.startsWith(target)) link.setAttribute('aria-current', 'page');
   });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && menu?.getAttribute('aria-expanded') === 'true') { closeMenu(); menu.focus(); } });
-  document.querySelectorAll('#main-navigation a').forEach(link => {
-    if (link.getAttribute('href') === location.pathname) link.setAttribute('aria-current', 'page');
-    link.addEventListener('click', closeMenu);
+
+  // Asbestos age check
+  document.querySelectorAll('[data-era-check]').forEach(box => {
+    const buttons = box.querySelectorAll('[data-era]');
+    const results = box.querySelectorAll('[data-era-result]');
+    const hint = box.querySelector('.hint');
+    hint?.classList.add('on');
+    buttons.forEach(button => button.addEventListener('click', () => {
+      const era = button.dataset.era;
+      buttons.forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+      results.forEach(r => r.classList.toggle('on', r.dataset.eraResult === era));
+      hint?.classList.remove('on');
+      track('asbestos_age_check', { era, page_path: location.pathname });
+    }));
   });
+
+  // Pre-select a service from ?service= (used by links into the intake form)
   const chosenService = new URLSearchParams(location.search || '').get('service');
-  const select = document.querySelector('#intake-service');
-  if (select && chosenService && Array.from(select.options).some(option => option.value === chosenService)) select.value = chosenService;
+  if (chosenService) {
+    const select = document.querySelector('#intake-service');
+    if (select && Array.from(select.options).some(option => option.value === chosenService)) select.value = chosenService;
+    document.querySelectorAll('input[type="radio"][name="service"]').forEach(input => { if (input.value === chosenService) input.checked = true; });
+  }
 
   document.querySelectorAll('a[href^="tel:"], a[href^="mailto:"]').forEach(link => link.addEventListener('click', () => {
     track(link.getAttribute('href').startsWith('tel:') ? 'phone_click' : 'email_click', { page_path: location.pathname });
@@ -157,6 +176,20 @@
     let previousSignature = '';
     let previousFiles = [];
     let started = false;
+    const fileInput = form.elements.namedItem('files');
+    const fileNote = form.querySelector('[data-file-count]');
+    fileInput?.addEventListener?.('change', () => {
+      if (fileNote) fileNote.textContent = fileInput.files.length ? `${fileInput.files.length} file${fileInput.files.length > 1 ? 's' : ''} ready to send` : '';
+    });
+    form.querySelector('[data-again]')?.addEventListener('click', () => {
+      form.classList.remove('is-done');
+      form.reset();
+      session = {}; previousSignature = ''; previousFiles = [];
+      const status = form.querySelector('.form-status');
+      if (status) status.hidden = true;
+      if (fileNote) fileNote.textContent = '';
+      form.querySelector('input:not([type=hidden]):not([tabindex="-1"])')?.focus();
+    });
     form.addEventListener('focusin', () => { if (!started) { track('form_start', { form_id: form.id }); started = true; } });
     form.addEventListener('submit', async event => {
       event.preventDefault();
@@ -181,7 +214,7 @@
       try {
         const data = new FormData(form);
         lead = makeLead(data, location.pathname);
-        const files = Array.from(form.elements.namedItem('files')?.files || []);
+        const files = Array.from(fileInput?.files || []);
         checkFiles(files);
         const signature = JSON.stringify(lead);
         if (signature !== previousSignature || files.length !== previousFiles.length || files.some((file, i) => file !== previousFiles[i])) {
@@ -189,17 +222,21 @@
         }
         controls.forEach(control => { control.disabled = true; });
         const result = await submitIntake(lead, files, session, showStatus);
+        const title = form.querySelector('[data-done-title]');
         if (result.notificationDelivered) {
           showStatus(`Got it — we have received your enquiry. Reference: ${result.id}. We will be in touch shortly.`, 'success');
+          if (title) title.textContent = 'Request received.';
           help.hidden = true;
         } else {
           showStatus(`Your enquiry${result.fileCount ? ' and ' + result.fileCount + ' supporting file(s)' : ''} has been recorded. Reference: ${result.id}. Email delivery to our team is not confirmed. Please call 0403 126 276 or use the email link below to confirm your request.`, 'pending');
+          if (title) title.textContent = 'Enquiry recorded.';
           help.hidden = false;
         }
-        const emailLink = form.querySelector('.email-enquiry');
-        if (emailLink) {
+        form.classList.add('is-done');
+        const emailLinks = form.querySelectorAll('.email-enquiry');
+        if (emailLinks.length) {
           const body = [`Enquiry reference: ${result.id}`, `Name: ${lead.name}`, `Phone: ${lead.phone}`, `Email: ${lead.email}`, `Service: ${lead.service}`, `Property: ${lead.siteAddress}`, `Urgency: ${lead.urgency}`, '', lead.message, '', 'Please attach any supporting files to this email.'].join('\n');
-          emailLink.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject)}&body=${encodeURIComponent(body)}`;
+          emailLinks.forEach(link => { link.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject + ' — ' + result.id)}&body=${encodeURIComponent(body)}`; });
         }
         track('enquiry_recorded', { form_id: form.id, service: lead.service, page_path: location.pathname });
       } catch (error) {
@@ -207,10 +244,10 @@
         const message = error.name === 'AbortError' ? 'The upload timed out. Please retry to resume or email your files.' : error.message || 'We could not complete your submission. Please contact us directly.';
         showStatus(message + reference, 'error');
         help.hidden = false;
-        const emailLink = form.querySelector('.email-enquiry');
-        if (emailLink && lead) {
+        const emailLinks = form.querySelectorAll('.email-enquiry');
+        if (emailLinks.length && lead) {
           const body = [`Enquiry reference: ${session.id || 'unconfirmed'}`, `Name: ${lead.name}`, `Phone: ${lead.phone}`, `Email: ${lead.email}`, `Service: ${lead.service}`, `Property: ${lead.siteAddress}`, `Urgency: ${lead.urgency}`, '', lead.message, '', 'Please attach any supporting files to this email.'].join('\n');
-          emailLink.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject)}&body=${encodeURIComponent(body)}`;
+          emailLinks.forEach(link => { link.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject)}&body=${encodeURIComponent(body)}`; });
         }
         track('form_error', { form_id: form.id, stage: session.id ? 'files' : 'submission' });
       } finally {
