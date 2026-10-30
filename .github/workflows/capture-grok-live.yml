@@ -1,0 +1,55 @@
+name: Capture the live Grok-built Alliance site
+
+# Read-only: saves the public alliancegroups.com.au pages and files exactly as served today
+# into grok-site/ on this branch. No forms are submitted and nothing on Cloudflare changes.
+on:
+  push:
+    branches:
+      - capture/grok-live-2026-10-31
+    paths:
+      - .github/workflows/capture-grok-live.yml
+      - scripts/capture-grok-live.cjs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capture-grok-live
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.repository == 'AllianceGroupAU/alliancegroups-site'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install a real browser
+        run: |
+          mkdir -p /tmp/cap && cd /tmp/cap && npm init -y >/dev/null && npm install playwright@1.48.2 >/dev/null
+          npx --prefix /tmp/cap playwright install --with-deps chromium
+          sudo apt-get install -y xvfb >/dev/null
+      - name: Capture the public site
+        run: NODE_PATH=/tmp/cap/node_modules xvfb-run -a node scripts/capture-grok-live.cjs
+      - name: Commit the capture to this branch
+        if: always()
+        run: |
+          if [ ! -d grok-site ]; then echo "Nothing captured."; exit 0; fi
+          git config user.name "alliance-site-capture[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- grok-site/
+          if git diff --cached --quiet; then echo "No changes."; else
+            git commit -m "chore: capture live Grok-built site as served on $(date -u +%F) [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f grok-site/_capture-report.json ]; then
+            node -e "const r=require('./grok-site/_capture-report.json');console.log(JSON.stringify(r.summary));console.log('Title:',r.homeTitle);console.log('External:',r.external.join(', '));console.log('Home headers:',JSON.stringify(r.headers.home));for(const f of r.failures.slice(0,30))console.log('FAIL',JSON.stringify(f))" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
