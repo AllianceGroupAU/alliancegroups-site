@@ -120,6 +120,7 @@
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event, ...data });
       if (typeof window.gtag === 'function') window.gtag('event', event, data);
+      if (window.posthog && typeof window.posthog.capture === 'function') window.posthog.capture(event, data);
     }
   }
 
