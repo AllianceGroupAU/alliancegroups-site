@@ -55,3 +55,4 @@
 .faq-end p{margin:0;font-weight:600}
 .faq-end .btn{white-space:nowrap}
 @media(max-width:750px){.faq-grid{grid-template-columns:1fr}.quick-enquiry{margin:15px 0;padding:15px}.alliance-faq{padding:50px 0}.faq-end{align-items:start;flex-direction:column}}
+.links .nav-cta:hover,.links .nav-cta[aria-current=page]{color:#111}
