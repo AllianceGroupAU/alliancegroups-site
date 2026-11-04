@@ -120,6 +120,7 @@
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event, ...data });
       if (typeof window.gtag === 'function') window.gtag('event', event, data);
+      if (window.posthog && typeof window.posthog.capture === 'function') window.posthog.capture(event, data);
     }
   }
 
@@ -152,6 +153,8 @@
   }));
 
   document.querySelectorAll('.enquiry-form').forEach(form => {
+    // PostHog autocapture skips this form. Its email fallback link carries the visitor's answers in its href.
+    form.classList.add('ph-no-capture');
     let busy = false;
     let session = {};
     let previousSignature = '';
