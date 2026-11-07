@@ -23,6 +23,13 @@ const storage = () => getStorage();
 // ── Secrets (explicitly declared; accessible only within bound functions) ──
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+
+// ── Compliance Shield Annual Audit subscription ────────────────────────────
+const COMPLIANCE_SHIELD_PRICE_AUD_CENTS = 43450; // $395 + 10% GST = $434.50
+const COMPLIANCE_SHIELD_PRODUCT_NAME = "Compliance Shield™ Annual Audit Readiness Review";
+const SITE_ORIGIN = "https://www.alliancegroups.com.au";
 
 // ── Upload policy ──────────────────────────────────────────────────────────
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB — must match frontend
@@ -605,6 +612,192 @@ exports.markSubmissionReady = onRequest(
     } catch (err) {
       console.error("markSubmissionReady error:", err);
       return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// createComplianceShieldCheckout — Starts the Compliance Shield Annual Audit
+// subscription (Stripe Checkout, recurring yearly billing)
+// ══════════════════════════════════════════════════════════════════════════════
+exports.createComplianceShieldCheckout = onRequest(
+  { secrets: [stripeSecretKey], cors: false },
+  async (req, res) => {
+    if (handleCors(req, res)) return;
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (rateLimit(ip, 60_000, 10)) {
+      return res.status(429).json({ error: "Too many requests. Please try again shortly." });
+    }
+
+    const body = req.body || {};
+    if (body._hp && String(body._hp).trim() !== "") {
+      return res.status(400).json({ error: "Submission rejected." });
+    }
+
+    const safe = (v, max) => (typeof v === "string" ? v.trim().substring(0, max) : "");
+    const name = safe(body.name, 120);
+    const email = safe(body.email, 254);
+    const phone = safe(body.phone, 20);
+    const propertyAddress = safe(body.propertyAddress, 300);
+
+    const errors = [];
+    if (!name || name.length < 2) errors.push("Name is required (min 2 characters).");
+    if (!email || !EMAIL_RE.test(email)) errors.push("A valid email address is required.");
+    if (!phone || !PHONE_RE.test(phone)) errors.push("A valid phone number is required.");
+    if (!propertyAddress || propertyAddress.length < 5) errors.push("Property address is required.");
+    if (errors.length) return res.status(400).json({ error: errors.join(" ") });
+
+    try {
+      const leadRef = await db().collection("leads").add({
+        name, email, phone, propertyAddress,
+        service: "Compliance Shield™ Annual Audit",
+        isComplianceShield: true,
+        offerType: "annual_audit_subscription",
+        subscriptionStatus: "checkout_pending",
+        timestamp: FieldValue.serverTimestamp(),
+        sourceIp: ip,
+      });
+      const leadId = leadRef.id;
+
+      const stripe = require("stripe")(stripeSecretKey.value());
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        customer_email: email,
+        line_items: [{
+          price_data: {
+            currency: "aud",
+            product_data: {
+              name: COMPLIANCE_SHIELD_PRODUCT_NAME,
+              description: `Annual 48-hour desktop compliance review and renewal, for ${propertyAddress}`,
+            },
+            unit_amount: COMPLIANCE_SHIELD_PRICE_AUD_CENTS,
+            recurring: { interval: "year" },
+          },
+          quantity: 1,
+        }],
+        success_url: `${SITE_ORIGIN}/compliance-shield/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${SITE_ORIGIN}/compliance-shield/?checkout=cancelled`,
+        client_reference_id: leadId,
+        metadata: { leadId, propertyAddress },
+        subscription_data: { metadata: { leadId, propertyAddress } },
+      });
+
+      await leadRef.update({ stripeCheckoutSessionId: session.id });
+
+      return res.status(200).json({ success: true, id: leadId, url: session.url });
+    } catch (err) {
+      console.error("createComplianceShieldCheckout error:", err);
+      return res.status(500).json({ error: "Could not start checkout. Please call 0403 126 276." });
+    }
+  }
+);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// stripeWebhook — Confirms Compliance Shield subscription payments/renewals
+// ══════════════════════════════════════════════════════════════════════════════
+exports.stripeWebhook = onRequest(
+  { secrets: [stripeWebhookSecret, stripeSecretKey, smtpUser, smtpPass], cors: false },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+
+    const stripe = require("stripe")(stripeSecretKey.value());
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.rawBody,
+        req.headers["stripe-signature"],
+        stripeWebhookSecret.value()
+      );
+    } catch (err) {
+      console.error("stripeWebhook signature verification failed:", err.message);
+      return res.status(400).send(`Webhook signature verification failed.`);
+    }
+
+    const notifyTo = process.env.INTAKE_NOTIFICATION_TO || "la.asbestos@gmail.com";
+    const notify = async (subject, text) => {
+      try {
+        const transport = makeTransport(smtpUser.value(), smtpPass.value());
+        await transport.sendMail({
+          from: `"Alliance Building & Hazmat Group" <${smtpUser.value()}>`,
+          to: notifyTo,
+          subject,
+          text,
+        });
+      } catch (emailErr) {
+        console.error("stripeWebhook notification email failed:", emailErr);
+      }
+    };
+
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object;
+          const leadId = session.client_reference_id || session.metadata?.leadId;
+          if (leadId) {
+            await db().collection("leads").doc(leadId).set({
+              subscriptionStatus: "active",
+              stripeCustomerId: session.customer,
+              stripeSubscriptionId: session.subscription,
+              subscriptionStartedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+          }
+          await notify(
+            `New Compliance Shield Annual Audit subscription [${leadId || "unknown"}]`,
+            `A customer has paid and started an annual Compliance Shield subscription.\n\nLead ID: ${leadId}\nStripe customer: ${session.customer}\nStripe subscription: ${session.subscription}\nAmount: $${(session.amount_total / 100).toFixed(2)} AUD\n\nSchedule the first 48-hour desktop review.`
+          );
+          break;
+        }
+        case "invoice.paid": {
+          const invoice = event.data.object;
+          const isRenewal = invoice.billing_reason === "subscription_cycle";
+          if (isRenewal) {
+            const subs = await db().collection("leads")
+              .where("stripeSubscriptionId", "==", invoice.subscription).limit(1).get();
+            const leadId = subs.empty ? null : subs.docs[0].id;
+            if (leadId) {
+              await subs.docs[0].ref.update({
+                lastRenewalAt: FieldValue.serverTimestamp(),
+                lastInvoiceId: invoice.id,
+              });
+            }
+            await notify(
+              `Compliance Shield subscription renewed [${leadId || invoice.subscription}]`,
+              `An annual Compliance Shield subscription has renewed.\n\nLead ID: ${leadId || "unknown"}\nStripe subscription: ${invoice.subscription}\nAmount: $${(invoice.amount_paid / 100).toFixed(2)} AUD\n\nSchedule the renewal 48-hour desktop review.`
+            );
+          }
+          break;
+        }
+        case "invoice.payment_failed": {
+          const invoice = event.data.object;
+          await notify(
+            `Compliance Shield payment FAILED [${invoice.subscription}]`,
+            `A Compliance Shield subscription payment failed.\n\nStripe subscription: ${invoice.subscription}\nStripe customer: ${invoice.customer}\n\nStripe will retry automatically; follow up with the customer if it keeps failing.`
+          );
+          break;
+        }
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object;
+          const subs = await db().collection("leads")
+            .where("stripeSubscriptionId", "==", subscription.id).limit(1).get();
+          if (!subs.empty) {
+            await subs.docs[0].ref.update({ subscriptionStatus: "cancelled" });
+          }
+          await notify(
+            `Compliance Shield subscription cancelled [${subscription.id}]`,
+            `A Compliance Shield annual subscription was cancelled.\n\nStripe subscription: ${subscription.id}\nStripe customer: ${subscription.customer}`
+          );
+          break;
+        }
+        default:
+          break;
+      }
+      return res.status(200).json({ received: true });
+    } catch (err) {
+      console.error("stripeWebhook handling error:", err);
+      return res.status(500).json({ error: "Webhook handling failed." });
     }
   }
 );
