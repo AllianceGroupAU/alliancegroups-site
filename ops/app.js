@@ -60,6 +60,31 @@
   function date(time) {
     return time ? new Date(time).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'}) : 'Unknown time';
   }
+  async function refreshReferralOps() {
+    const partnersNode = $('partners');
+    const suppressionsNode = $('suppressions');
+    try {
+      const [partnerData, suppressionData] = await Promise.all([api('partners'), api('suppressions')]);
+      partnersNode.replaceChildren();
+      const partners = partnerData.partners || [];
+      if (!partners.length) partnersNode.append(element('p','No partner prospects recorded.'));
+      for (const partner of partners) {
+        partnersNode.append(element('p',partner.name + ' · ' + partner.category + ' · ' + partner.status + ' · fee eligible: no','item'));
+      }
+      suppressionsNode.replaceChildren();
+      const suppressions = suppressionData.suppressions || [];
+      if (!suppressions.length) suppressionsNode.append(element('p','No suppression records loaded.'));
+      for (const row of suppressions) {
+        suppressionsNode.append(element('p',row.phone + ' · ' + row.reason + ' · ' + date(row.created_ms),'item'));
+      }
+    } catch (error) {
+      partnersNode.replaceChildren(element('p','Partner operations unavailable: ' + error.message));
+      suppressionsNode.replaceChildren(element('p','Suppression records unavailable: ' + error.message));
+    }
+  }
+  function idempotentOptions(body) {
+    return {method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)};
+  }
   async function refresh() {
     notice('Loading private Alliance records…');
     try {
@@ -83,6 +108,7 @@
       renderLeads();
       notice('Private records unavailable: ' + error.message);
     }
+    refreshReferralOps();
   }
   function renderLeads() {
     const wrap = $('leads');
@@ -178,6 +204,27 @@
       await viewLead(selectedId);
       notice('Evidence attached to this private record.');
     } catch(error) { notice('Upload failed: ' + error.message); }
+  });
+  $('partner-form').addEventListener('submit',async event => {
+    event.preventDefault();
+    const data=Object.fromEntries(new FormData(event.currentTarget));
+    if(!data.phone && !data.email) { notice('Add a phone number or email address.'); return; }
+    try {
+      await api('partners',idempotentOptions(data));
+      event.currentTarget.reset();
+      await refreshReferralOps();
+      notice('Unapproved prospect saved. No contact was made and referral fees remain disabled.');
+    } catch(error) { notice('Prospect save failed: ' + error.message); }
+  });
+  $('suppression-form').addEventListener('submit',async event => {
+    event.preventDefault();
+    const data=Object.fromEntries(new FormData(event.currentTarget));
+    try {
+      await api('suppressions',idempotentOptions(data));
+      event.currentTarget.reset();
+      await refreshReferralOps();
+      notice('Number added to the suppression list. No outbound call was made.');
+    } catch(error) { notice('Suppression save failed: ' + error.message); }
   });
   refresh();
 })();

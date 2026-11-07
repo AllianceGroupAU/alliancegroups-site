@@ -465,10 +465,15 @@
         const valid = !validateFile(file);
         const item = document.createElement('div');
         item.className = `file-item ${valid ? 'file-ok' : 'file-bad'}`;
-        item.innerHTML = `
-          <span>${file.name} — ${(file.size / 1024 / 1024).toFixed(2)} MB</span>
-          <span class="file-remove" role="button" aria-label="Remove ${file.name}" data-index="${index}">✕</span>
-        `;
+        const fileDescription = document.createElement('span');
+        fileDescription.textContent = `${file.name} — ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        const removeButton = document.createElement('span');
+        removeButton.className = 'file-remove';
+        removeButton.setAttribute('role', 'button');
+        removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+        removeButton.dataset.index = String(index);
+        removeButton.textContent = '✕';
+        item.append(fileDescription, removeButton);
         fileList.appendChild(item);
       });
       fileList.querySelectorAll('.file-remove').forEach(el => {

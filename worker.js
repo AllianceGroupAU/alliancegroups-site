@@ -230,7 +230,31 @@ async function operationsEvent(env,id,actor,kind,detail) {
   await env.CRM_DB.prepare("INSERT INTO lead_events(id,lead_id,actor,kind,detail,created_ms) VALUES(?,?,?,?,?,?)")
     .bind(crypto.randomUUID(),id,actor,kind,detail,Date.now()).run();
 }
-async function handleOperations(request,env,user) {
+function normaliseSuppressionPhone(value) {
+  if (typeof value !== "string") return "";
+  const compact = value.trim().replace(/[()\s-]/g, "");
+  if (/^0[2-478]\d{8}$/.test(compact)) return "+61" + compact.slice(1);
+  if (/^61[2-478]\d{8}$/.test(compact)) return "+" + compact;
+  if (/^\+?[1-9]\d{7,14}$/.test(compact)) return compact.startsWith("+") ? compact : "+" + compact;
+  return "";
+}
+
+function idempotencyKey(request) {
+  const key = request.headers.get("Idempotency-Key") || "";
+  return /^[A-Za-z0-9._:-]{8,128}$/.test(key) ? key : "";
+}
+
+async function existingAgentAction(env,key) {
+  return env.CRM_DB.prepare("SELECT action,target_id,result FROM agent_actions WHERE idempotency_key=?").bind(key).first();
+}
+
+function replayAgentAction(prior,action) {
+  if(!prior) return null;
+  if(prior.action!==action) return privateJson({error:"Idempotency-Key was already used for another operation."},409);
+  return privateJson({id:prior.target_id,duplicate:true,result:prior.result});
+}
+
+export async function handleOperations(request,env,user) {
   const url=new URL(request.url);
   const path=url.pathname;
   const stages=new Set(["new","contacted","qualified","quoted","won","lost"]);
@@ -252,6 +276,66 @@ async function handleOperations(request,env,user) {
     if(path==="/api/internal/drafts" && request.method==="GET") {
       const result=await env.CRM_DB.prepare("SELECT * FROM message_drafts ORDER BY created_ms DESC LIMIT 100").all();
       return privateJson({drafts:result.results||[]});
+    }
+    if(path==="/api/internal/partners" && request.method==="GET") {
+      const result=await env.CRM_DB.prepare("SELECT id,partner_code,name,organisation,contact_name,category,phone,email,status,referral_fee_eligible,created_ms,updated_ms FROM partners ORDER BY created_ms DESC LIMIT 100").all();
+      return privateJson({partners:result.results||[]});
+    }
+    if(path==="/api/internal/partners" && request.method==="POST") {
+      const body=await request.json().catch(()=>null);
+      const categories=new Set(["strata","commercial_pm","residential_pm","assessor","building_trade","builder","public_sector","other"]);
+      if(!body || typeof body!=="object" || Array.isArray(body) ||
+          typeof body.name!=="string" || body.name.trim().length<2 || body.name.length>160 ||
+          !categories.has(body.category) ||
+          (body.organisation!==undefined && (typeof body.organisation!=="string" || body.organisation.length>200)) ||
+          (body.contact_name!==undefined && (typeof body.contact_name!=="string" || body.contact_name.length>120)) ||
+          (body.phone && (typeof body.phone!=="string" || !/^\+?[0-9 ()-]{8,24}$/.test(body.phone) || body.phone.replace(/\D/g,"").length<8 || body.phone.replace(/\D/g,"").length>15)) ||
+          (body.email && (typeof body.email!=="string" || body.email.length>254 || !EMAIL_RE.test(body.email))) ||
+          (!body.phone && !body.email) ||
+          Object.keys(body).some(key=>!["name","organisation","contact_name","category","phone","email"].includes(key))) {
+        return privateJson({error:"Provide a contact name, valid contact detail and supported partner category only."},400);
+      }
+      const key=idempotencyKey(request);
+      if(!key) return privateJson({error:"A valid Idempotency-Key header is required."},400);
+      const prior=await existingAgentAction(env,key);
+      const replay=replayAgentAction(prior,"partner_prospect_created");
+      if(replay) return replay;
+      const now=Date.now(),id=crypto.randomUUID(),code=crypto.randomUUID().replace(/-/g,"").slice(0,12).toUpperCase();
+      const result=JSON.stringify({created:true,status:"prospect",referralFeeEligible:false});
+      await env.CRM_DB.batch([
+        env.CRM_DB.prepare("INSERT INTO partners (id,partner_code,name,organisation,contact_name,category,phone,email,status,referral_fee_eligible,created_by,created_ms,updated_ms) VALUES (?,?,?,?,?,?,?,?,'prospect',0,?,?,?)")
+          .bind(id,code,body.name.trim(),clean(body.organisation,200),clean(body.contact_name,120),body.category,clean(body.phone,30),clean(body.email,254).toLowerCase(),user.email,now,now),
+        env.CRM_DB.prepare("INSERT INTO agent_actions (id,actor,action,target_type,target_id,idempotency_key,authorized,result,created_ms) VALUES (?,?,?,?,?,?,1,?,?)")
+          .bind(crypto.randomUUID(),user.email,"partner_prospect_created","partner",id,key,result,now)
+      ]);
+      return privateJson({id,partnerCode:code,...JSON.parse(result)},201);
+    }
+    if(path==="/api/internal/suppressions" && request.method==="GET") {
+      const result=await env.CRM_DB.prepare("SELECT id,phone,reason,source,created_by,created_ms FROM suppression_list ORDER BY created_ms DESC LIMIT 500").all();
+      return privateJson({suppressions:result.results||[]});
+    }
+    if(path==="/api/internal/suppressions" && request.method==="POST") {
+      const body=await request.json().catch(()=>null);
+      const reasons=new Set(["stop_request","not_interested","dncr","owner_request","other"]);
+      const phone=normaliseSuppressionPhone(body?.phone);
+      if(!phone || !reasons.has(body?.reason) || Object.keys(body||{}).some(key=>!["phone","reason","source"].includes(key))) {
+        return privateJson({error:"A valid phone number and suppression reason are required."},400);
+      }
+      const key=idempotencyKey(request);
+      if(!key) return privateJson({error:"A valid Idempotency-Key header is required."},400);
+      const prior=await existingAgentAction(env,key);
+      const replay=replayAgentAction(prior,"contact_suppressed");
+      if(replay) return replay;
+      const now=Date.now(),id=crypto.randomUUID();
+      const result=JSON.stringify({suppressed:true,outboundBlocked:true});
+      await env.CRM_DB.batch([
+        env.CRM_DB.prepare("INSERT OR IGNORE INTO suppression_list (id,phone,reason,source,created_by,created_ms) VALUES (?,?,?,?,?,?)")
+          .bind(id,phone,body.reason,clean(body.source,80)||"manual",user.email,now),
+        env.CRM_DB.prepare("INSERT INTO agent_actions (id,actor,action,target_type,target_id,idempotency_key,authorized,result,created_ms) VALUES (?,?,?,?,?,?,1,?,?)")
+          .bind(crypto.randomUUID(),user.email,"contact_suppressed","phone",phone,key,result,now)
+      ]);
+      const saved=await env.CRM_DB.prepare("SELECT id FROM suppression_list WHERE phone=?").bind(phone).first();
+      return privateJson({id:saved?.id||id,...JSON.parse(result)},201);
     }
     const leadMatch=path.match(/^\/api\/internal\/leads\/([a-f0-9-]{36})(?:\/(drafts|documents))?$/);
     if(leadMatch) {

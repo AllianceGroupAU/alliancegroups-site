@@ -51,6 +51,26 @@
 <div><small>Quoted</small><strong id="count-quoted">–</strong></div>
 <div><small>Won</small><strong id="count-won">–</strong></div>
 </section>
+<section class="panel" aria-labelledby="partners-title">
+<header><h3 id="partners-title">Partner prospects &amp; suppression</h3><span>No outbound calls or payments</span></header>
+<p>Prospect records are unapproved. Do not enter purchased or unverified target lists. Outbound calling is not enabled.</p>
+<div class="fields">
+<form id="partner-form"><h4>Add an owner-entered prospect</h4>
+<label>Name<input name="name" maxlength="160" required></label>
+<label>Organisation<input name="organisation" maxlength="200"></label>
+<label>Contact person<input name="contact_name" maxlength="120"></label>
+<label>Category<select name="category"><option value="strata">Strata / body corporate</option><option value="commercial_pm">Commercial property manager</option><option value="residential_pm">Residential property manager</option><option value="assessor">Assessor / hygienist (no referral fees)</option><option value="building_trade">Building / pest trade</option><option value="builder">Builder / roofer / electrician</option><option value="public_sector">Public sector (no referral fees)</option><option value="other">Other</option></select></label>
+<label>Phone<input name="phone" maxlength="30"></label>
+<label>Email<input name="email" type="email" maxlength="254"></label>
+<button type="submit">Save unapproved prospect</button></form>
+<form id="suppression-form"><h4>Record a do-not-call request</h4>
+<label>Phone<input name="phone" maxlength="30" required></label>
+<label>Reason<select name="reason"><option value="stop_request">Stop / remove me request</option><option value="not_interested">Not interested</option><option value="dncr">DNCR check</option><option value="owner_request">Owner request</option><option value="other">Other</option></select></label>
+<button type="submit">Suppress number</button></form>
+</div>
+<div class="fields"><div><h4>Recent prospects</h4><div id="partners"><p>Loading private partner records…</p></div></div>
+<div><h4>Suppression list</h4><div id="suppressions"><p>Loading private suppressions…</p></div></div></div>
+</section>
 <div class="columns">
 <section class="panel" aria-labelledby="pipeline-title"><header><h3 id="pipeline-title">Enquiry pipeline</h3><label>Stage <select id="stage-filter"><option value="">All stages</option><option>new</option><option>contacted</option><option>qualified</option><option>quoted</option><option>won</option><option>lost</option></select></label></header>
 <div id="leads" class="leads"><p>No records loaded.</p></div></section>
