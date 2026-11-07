@@ -7,7 +7,9 @@ import sys
 
 BASE = Path("live-site")
 ROUTES = ("", "emergency-response", "roofing", "asbestos-hazmat",
-          "mould-remediation", "compliance-shield", "about", "contact", "intake", "blog")
+          "mould-remediation", "compliance-shield", "about", "contact", "intake", "blog",
+          "our-work", "our-work/kalinga-rsl-sub-branch", "our-work/kalinga-youth-centre",
+          "our-work/anzac-avenue", "our-work/yeronga-church")
 
 class AssetRefs(HTMLParser):
     def __init__(self):
