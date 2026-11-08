@@ -26,9 +26,29 @@ const smtpPass = defineSecret("SMTP_PASS");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-// ── Compliance Shield Annual Audit subscription ────────────────────────────
-const COMPLIANCE_SHIELD_PRICE_AUD_CENTS = 43450; // $395 + 10% GST = $434.50
-const COMPLIANCE_SHIELD_PRODUCT_NAME = "Compliance Shield™ Annual Audit Readiness Review";
+// ── Compliance Shield subscription: 3 tiers x 2 billing intervals ──────────
+// All amounts are GST-inclusive AUD cents. Ex-GST price x 1.1, rounded.
+const COMPLIANCE_SHIELD_PLANS = {
+  silver: {
+    label: "Silver",
+    description: "Annual 48-hour desktop compliance review and renewal",
+    month: 4345,   // $39.50 + GST
+    year: 43450,   // $395 + GST
+  },
+  gold: {
+    label: "Gold",
+    description: "Annual compliance review, quarterly check-ins, and 24/7 emergency response for storm damage, roof leaks and other weather mishaps",
+    month: 8745,   // $79.50 + GST
+    year: 87450,   // $795 + GST
+  },
+  platinum: {
+    label: "Platinum",
+    description: "Annual compliance review, quarterly check-ins, priority-SLA 24/7 emergency response for storm damage, roof leaks and other weather mishaps, and a document vault",
+    month: 16445,  // $149.50 + GST
+    year: 164450,  // $1,495 + GST
+  },
+};
+const COMPLIANCE_SHIELD_PRODUCT_NAME = "Compliance Shield™";
 const SITE_ORIGIN = "https://www.alliancegroups.com.au";
 
 // ── Upload policy ──────────────────────────────────────────────────────────
@@ -617,8 +637,8 @@ exports.markSubmissionReady = onRequest(
 );
 
 // ══════════════════════════════════════════════════════════════════════════════
-// createComplianceShieldCheckout — Starts the Compliance Shield Annual Audit
-// subscription (Stripe Checkout, recurring yearly billing)
+// createComplianceShieldCheckout — Starts a Compliance Shield subscription
+// (Stripe Checkout, recurring monthly or yearly billing, 3 tiers)
 // ══════════════════════════════════════════════════════════════════════════════
 exports.createComplianceShieldCheckout = onRequest(
   { secrets: [stripeSecretKey], cors: false },
@@ -641,20 +661,30 @@ exports.createComplianceShieldCheckout = onRequest(
     const email = safe(body.email, 254);
     const phone = safe(body.phone, 20);
     const propertyAddress = safe(body.propertyAddress, 300);
+    const tierKey = safe(body.tier, 20).toLowerCase();
+    const interval = safe(body.interval, 10).toLowerCase();
 
     const errors = [];
     if (!name || name.length < 2) errors.push("Name is required (min 2 characters).");
     if (!email || !EMAIL_RE.test(email)) errors.push("A valid email address is required.");
     if (!phone || !PHONE_RE.test(phone)) errors.push("A valid phone number is required.");
     if (!propertyAddress || propertyAddress.length < 5) errors.push("Property address is required.");
+    const plan = COMPLIANCE_SHIELD_PLANS[tierKey];
+    if (!plan) errors.push("A valid plan tier is required.");
+    if (interval !== "month" && interval !== "year") errors.push("A valid billing interval is required.");
     if (errors.length) return res.status(400).json({ error: errors.join(" ") });
+
+    // Server-side price lookup only — the client never sets the amount charged.
+    const unitAmount = plan[interval];
 
     try {
       const leadRef = await db().collection("leads").add({
         name, email, phone, propertyAddress,
-        service: "Compliance Shield™ Annual Audit",
+        service: `Compliance Shield™ ${plan.label}`,
         isComplianceShield: true,
-        offerType: "annual_audit_subscription",
+        offerType: "tiered_subscription",
+        tier: tierKey,
+        billingInterval: interval,
         subscriptionStatus: "checkout_pending",
         timestamp: FieldValue.serverTimestamp(),
         sourceIp: ip,
@@ -670,19 +700,19 @@ exports.createComplianceShieldCheckout = onRequest(
           price_data: {
             currency: "aud",
             product_data: {
-              name: COMPLIANCE_SHIELD_PRODUCT_NAME,
-              description: `Annual 48-hour desktop compliance review and renewal, for ${propertyAddress}`,
+              name: `${COMPLIANCE_SHIELD_PRODUCT_NAME} — ${plan.label}`,
+              description: `${plan.description}, for ${propertyAddress}`,
             },
-            unit_amount: COMPLIANCE_SHIELD_PRICE_AUD_CENTS,
-            recurring: { interval: "year" },
+            unit_amount: unitAmount,
+            recurring: { interval },
           },
           quantity: 1,
         }],
         success_url: `${SITE_ORIGIN}/compliance-shield/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${SITE_ORIGIN}/compliance-shield/?checkout=cancelled`,
         client_reference_id: leadId,
-        metadata: { leadId, propertyAddress },
-        subscription_data: { metadata: { leadId, propertyAddress } },
+        metadata: { leadId, propertyAddress, tier: tierKey, interval },
+        subscription_data: { metadata: { leadId, propertyAddress, tier: tierKey, interval } },
       });
 
       await leadRef.update({ stripeCheckoutSessionId: session.id });
@@ -736,6 +766,8 @@ exports.stripeWebhook = onRequest(
         case "checkout.session.completed": {
           const session = event.data.object;
           const leadId = session.client_reference_id || session.metadata?.leadId;
+          const tier = session.metadata?.tier || "unknown";
+          const interval = session.metadata?.interval || "unknown";
           if (leadId) {
             await db().collection("leads").doc(leadId).set({
               subscriptionStatus: "active",
@@ -745,8 +777,8 @@ exports.stripeWebhook = onRequest(
             }, { merge: true });
           }
           await notify(
-            `New Compliance Shield Annual Audit subscription [${leadId || "unknown"}]`,
-            `A customer has paid and started an annual Compliance Shield subscription.\n\nLead ID: ${leadId}\nStripe customer: ${session.customer}\nStripe subscription: ${session.subscription}\nAmount: $${(session.amount_total / 100).toFixed(2)} AUD\n\nSchedule the first 48-hour desktop review.`
+            `New Compliance Shield ${tier} subscription [${leadId || "unknown"}]`,
+            `A customer has paid and started a Compliance Shield subscription.\n\nLead ID: ${leadId}\nTier: ${tier} (billed ${interval}ly)\nStripe customer: ${session.customer}\nStripe subscription: ${session.subscription}\nAmount: $${(session.amount_total / 100).toFixed(2)} AUD\n\nSchedule the first 48-hour desktop review.`
           );
           break;
         }
@@ -757,6 +789,7 @@ exports.stripeWebhook = onRequest(
             const subs = await db().collection("leads")
               .where("stripeSubscriptionId", "==", invoice.subscription).limit(1).get();
             const leadId = subs.empty ? null : subs.docs[0].id;
+            const tier = subs.empty ? "unknown" : (subs.docs[0].data().tier || "unknown");
             if (leadId) {
               await subs.docs[0].ref.update({
                 lastRenewalAt: FieldValue.serverTimestamp(),
@@ -764,8 +797,8 @@ exports.stripeWebhook = onRequest(
               });
             }
             await notify(
-              `Compliance Shield subscription renewed [${leadId || invoice.subscription}]`,
-              `An annual Compliance Shield subscription has renewed.\n\nLead ID: ${leadId || "unknown"}\nStripe subscription: ${invoice.subscription}\nAmount: $${(invoice.amount_paid / 100).toFixed(2)} AUD\n\nSchedule the renewal 48-hour desktop review.`
+              `Compliance Shield ${tier} subscription renewed [${leadId || invoice.subscription}]`,
+              `A Compliance Shield subscription has renewed.\n\nLead ID: ${leadId || "unknown"}\nTier: ${tier}\nStripe subscription: ${invoice.subscription}\nAmount: $${(invoice.amount_paid / 100).toFixed(2)} AUD\n\nSchedule the renewal 48-hour desktop review.`
             );
           }
           break;
