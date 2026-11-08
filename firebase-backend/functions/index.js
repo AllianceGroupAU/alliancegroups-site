@@ -5,7 +5,7 @@
  */
 
 const { onRequest } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
+const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
@@ -23,8 +23,10 @@ const storage = () => getStorage();
 // ── Secrets (explicitly declared; accessible only within bound functions) ──
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
-const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
-const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const paypalClientId = defineSecret("PAYPAL_CLIENT_ID");
+const paypalClientSecret = defineSecret("PAYPAL_CLIENT_SECRET");
+const paypalWebhookId = defineSecret("PAYPAL_WEBHOOK_ID");
+const paypalEnv = defineString("PAYPAL_ENV", { default: "sandbox" }); // "sandbox" or "live"
 
 // ── Compliance Shield subscription: 3 tiers x 2 billing intervals ──────────
 // All amounts are GST-inclusive AUD cents. Ex-GST price x 1.1, rounded.
@@ -48,8 +50,60 @@ const COMPLIANCE_SHIELD_PLANS = {
     year: 164450,  // $1,495 + GST
   },
 };
-const COMPLIANCE_SHIELD_PRODUCT_NAME = "Compliance Shield™";
 const SITE_ORIGIN = "https://www.alliancegroups.com.au";
+
+// PayPal Billing Plan IDs — PayPal subscriptions must reference a pre-created
+// Plan (unlike Stripe's inline price_data). Run scripts/setup-paypal-plans.js
+// once per PayPal environment (sandbox, then live) and paste the printed IDs
+// here before deploying. Requests for a tier/interval with no ID configured
+// are rejected rather than silently mischarged.
+const COMPLIANCE_SHIELD_PLAN_IDS = {
+  silver: { month: null, year: null },
+  gold: { month: null, year: null },
+  platinum: { month: null, year: null },
+};
+
+function paypalApiBase() {
+  return paypalEnv.value() === "live"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
+}
+
+async function getPaypalAccessToken() {
+  const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${paypalClientId.value()}:${paypalClientSecret.value()}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`PayPal OAuth token request failed: ${JSON.stringify(data)}`);
+  return data.access_token;
+}
+
+async function verifyPaypalWebhookSignature(req, accessToken) {
+  const res = await fetch(`${paypalApiBase()}/v1/notifications/verify-webhook-signature`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      transmission_id: req.headers["paypal-transmission-id"],
+      transmission_time: req.headers["paypal-transmission-time"],
+      cert_url: req.headers["paypal-cert-url"],
+      auth_algo: req.headers["paypal-auth-algo"],
+      transmission_sig: req.headers["paypal-transmission-sig"],
+      webhook_id: paypalWebhookId.value(),
+      webhook_event: req.body,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`PayPal webhook verification request failed: ${JSON.stringify(data)}`);
+  return data.verification_status === "SUCCESS";
+}
 
 // ── Upload policy ──────────────────────────────────────────────────────────
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB — must match frontend
@@ -637,11 +691,11 @@ exports.markSubmissionReady = onRequest(
 );
 
 // ══════════════════════════════════════════════════════════════════════════════
-// createComplianceShieldCheckout — Starts a Compliance Shield subscription
-// (Stripe Checkout, recurring monthly or yearly billing, 3 tiers)
+// createComplianceShieldSubscription — Starts a Compliance Shield subscription
+// (PayPal Subscriptions, recurring monthly or yearly billing, 3 tiers)
 // ══════════════════════════════════════════════════════════════════════════════
-exports.createComplianceShieldCheckout = onRequest(
-  { secrets: [stripeSecretKey], cors: false },
+exports.createComplianceShieldSubscription = onRequest(
+  { secrets: [paypalClientId, paypalClientSecret], cors: false },
   async (req, res) => {
     if (handleCors(req, res)) return;
     if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
@@ -674,8 +728,12 @@ exports.createComplianceShieldCheckout = onRequest(
     if (interval !== "month" && interval !== "year") errors.push("A valid billing interval is required.");
     if (errors.length) return res.status(400).json({ error: errors.join(" ") });
 
-    // Server-side price lookup only — the client never sets the amount charged.
-    const unitAmount = plan[interval];
+    // Server-side plan lookup only — the client never sets the amount charged.
+    const planId = COMPLIANCE_SHIELD_PLAN_IDS[tierKey]?.[interval];
+    if (!planId) {
+      console.error(`No PayPal plan ID configured for ${tierKey}/${interval}`);
+      return res.status(500).json({ error: "Subscription plans are not set up yet. Please call 0403 126 276." });
+    }
 
     try {
       const leadRef = await db().collection("leads").add({
@@ -685,67 +743,79 @@ exports.createComplianceShieldCheckout = onRequest(
         offerType: "tiered_subscription",
         tier: tierKey,
         billingInterval: interval,
-        subscriptionStatus: "checkout_pending",
+        subscriptionStatus: "approval_pending",
         timestamp: FieldValue.serverTimestamp(),
         sourceIp: ip,
       });
       const leadId = leadRef.id;
 
-      const stripe = require("stripe")(stripeSecretKey.value());
-      const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        payment_method_types: ["card"],
-        customer_email: email,
-        line_items: [{
-          price_data: {
-            currency: "aud",
-            product_data: {
-              name: `${COMPLIANCE_SHIELD_PRODUCT_NAME} — ${plan.label}`,
-              description: `${plan.description}, for ${propertyAddress}`,
-            },
-            unit_amount: unitAmount,
-            recurring: { interval },
+      const [firstName, ...rest] = name.split(" ");
+      const accessToken = await getPaypalAccessToken();
+      const subRes = await fetch(`${paypalApiBase()}/v1/billing/subscriptions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "PayPal-Request-Id": leadId, // idempotency key
+        },
+        body: JSON.stringify({
+          plan_id: planId,
+          custom_id: leadId,
+          subscriber: {
+            name: { given_name: firstName || name, surname: rest.join(" ") || "-" },
+            email_address: email,
           },
-          quantity: 1,
-        }],
-        success_url: `${SITE_ORIGIN}/compliance-shield/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${SITE_ORIGIN}/compliance-shield/?checkout=cancelled`,
-        client_reference_id: leadId,
-        metadata: { leadId, propertyAddress, tier: tierKey, interval },
-        subscription_data: { metadata: { leadId, propertyAddress, tier: tierKey, interval } },
+          application_context: {
+            brand_name: "Alliance Building & Hazmat Group",
+            locale: "en-AU",
+            shipping_preference: "NO_SHIPPING",
+            user_action: "SUBSCRIBE_NOW",
+            return_url: `${SITE_ORIGIN}/compliance-shield/?checkout=success`,
+            cancel_url: `${SITE_ORIGIN}/compliance-shield/?checkout=cancelled`,
+          },
+        }),
       });
+      const subscription = await subRes.json();
+      if (!subRes.ok) {
+        console.error("PayPal subscription creation failed:", subscription);
+        throw new Error("PayPal subscription creation failed");
+      }
 
-      await leadRef.update({ stripeCheckoutSessionId: session.id });
+      const approveUrl = (subscription.links || []).find((l) => l.rel === "approve")?.href;
+      if (!approveUrl) throw new Error("PayPal did not return an approval URL");
 
-      return res.status(200).json({ success: true, id: leadId, url: session.url });
+      await leadRef.update({ paypalSubscriptionId: subscription.id });
+
+      return res.status(200).json({ success: true, id: leadId, url: approveUrl });
     } catch (err) {
-      console.error("createComplianceShieldCheckout error:", err);
+      console.error("createComplianceShieldSubscription error:", err);
       return res.status(500).json({ error: "Could not start checkout. Please call 0403 126 276." });
     }
   }
 );
 
 // ══════════════════════════════════════════════════════════════════════════════
-// stripeWebhook — Confirms Compliance Shield subscription payments/renewals
+// paypalWebhook — Confirms Compliance Shield subscription payments/renewals
 // ══════════════════════════════════════════════════════════════════════════════
-exports.stripeWebhook = onRequest(
-  { secrets: [stripeWebhookSecret, stripeSecretKey, smtpUser, smtpPass], cors: false },
+exports.paypalWebhook = onRequest(
+  { secrets: [paypalClientId, paypalClientSecret, paypalWebhookId, smtpUser, smtpPass], cors: false },
   async (req, res) => {
     if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-    const stripe = require("stripe")(stripeSecretKey.value());
-    let event;
+    let verified;
     try {
-      event = stripe.webhooks.constructEvent(
-        req.rawBody,
-        req.headers["stripe-signature"],
-        stripeWebhookSecret.value()
-      );
+      const accessToken = await getPaypalAccessToken();
+      verified = await verifyPaypalWebhookSignature(req, accessToken);
     } catch (err) {
-      console.error("stripeWebhook signature verification failed:", err.message);
-      return res.status(400).send(`Webhook signature verification failed.`);
+      console.error("paypalWebhook verification request failed:", err);
+      return res.status(400).send("Webhook verification failed.");
+    }
+    if (!verified) {
+      console.error("paypalWebhook signature did not verify.");
+      return res.status(400).send("Webhook signature verification failed.");
     }
 
+    const event = req.body || {};
     const notifyTo = process.env.INTAKE_NOTIFICATION_TO || "la.asbestos@gmail.com";
     const notify = async (subject, text) => {
       try {
@@ -757,70 +827,81 @@ exports.stripeWebhook = onRequest(
           text,
         });
       } catch (emailErr) {
-        console.error("stripeWebhook notification email failed:", emailErr);
+        console.error("paypalWebhook notification email failed:", emailErr);
       }
     };
 
     try {
-      switch (event.type) {
-        case "checkout.session.completed": {
-          const session = event.data.object;
-          const leadId = session.client_reference_id || session.metadata?.leadId;
-          const tier = session.metadata?.tier || "unknown";
-          const interval = session.metadata?.interval || "unknown";
+      switch (event.event_type) {
+        case "BILLING.SUBSCRIPTION.ACTIVATED": {
+          const subscription = event.resource || {};
+          const leadId = subscription.custom_id;
+          let tier = "unknown";
           if (leadId) {
-            await db().collection("leads").doc(leadId).set({
+            const leadSnap = await db().collection("leads").doc(leadId).get();
+            tier = leadSnap.data()?.tier || "unknown";
+            await leadSnap.ref.set({
               subscriptionStatus: "active",
-              stripeCustomerId: session.customer,
-              stripeSubscriptionId: session.subscription,
+              paypalSubscriptionId: subscription.id,
+              paypalSubscriberEmail: subscription.subscriber?.email_address,
               subscriptionStartedAt: FieldValue.serverTimestamp(),
             }, { merge: true });
           }
           await notify(
-            `New Compliance Shield ${tier} subscription [${leadId || "unknown"}]`,
-            `A customer has paid and started a Compliance Shield subscription.\n\nLead ID: ${leadId}\nTier: ${tier} (billed ${interval}ly)\nStripe customer: ${session.customer}\nStripe subscription: ${session.subscription}\nAmount: $${(session.amount_total / 100).toFixed(2)} AUD\n\nSchedule the first 48-hour desktop review.`
+            `New Compliance Shield ${tier} subscription [${leadId || subscription.id}]`,
+            `A customer has approved and started a Compliance Shield subscription.\n\nLead ID: ${leadId || "unknown"}\nTier: ${tier}\nPayPal subscription: ${subscription.id}\nPayPal subscriber: ${subscription.subscriber?.email_address || "unknown"}\n\nSchedule the first 48-hour desktop review.`
           );
           break;
         }
-        case "invoice.paid": {
-          const invoice = event.data.object;
-          const isRenewal = invoice.billing_reason === "subscription_cycle";
+        case "PAYMENT.SALE.COMPLETED": {
+          const sale = event.resource || {};
+          const subscriptionId = sale.billing_agreement_id;
+          if (!subscriptionId) break;
+          const subs = await db().collection("leads")
+            .where("paypalSubscriptionId", "==", subscriptionId).limit(1).get();
+          if (subs.empty) break;
+          const leadDoc = subs.docs[0];
+          const leadData = leadDoc.data();
+          const isRenewal = !!leadData.paymentCount; // first payment already notified via ACTIVATED
+          await leadDoc.ref.update({
+            lastPaymentAt: FieldValue.serverTimestamp(),
+            lastPaymentId: sale.id,
+            paymentCount: (leadData.paymentCount || 0) + 1,
+          });
           if (isRenewal) {
-            const subs = await db().collection("leads")
-              .where("stripeSubscriptionId", "==", invoice.subscription).limit(1).get();
-            const leadId = subs.empty ? null : subs.docs[0].id;
-            const tier = subs.empty ? "unknown" : (subs.docs[0].data().tier || "unknown");
-            if (leadId) {
-              await subs.docs[0].ref.update({
-                lastRenewalAt: FieldValue.serverTimestamp(),
-                lastInvoiceId: invoice.id,
-              });
-            }
             await notify(
-              `Compliance Shield ${tier} subscription renewed [${leadId || invoice.subscription}]`,
-              `A Compliance Shield subscription has renewed.\n\nLead ID: ${leadId || "unknown"}\nTier: ${tier}\nStripe subscription: ${invoice.subscription}\nAmount: $${(invoice.amount_paid / 100).toFixed(2)} AUD\n\nSchedule the renewal 48-hour desktop review.`
+              `Compliance Shield ${leadData.tier || "unknown"} subscription renewed [${leadDoc.id}]`,
+              `A Compliance Shield subscription has renewed.\n\nLead ID: ${leadDoc.id}\nTier: ${leadData.tier || "unknown"}\nPayPal subscription: ${subscriptionId}\nAmount: $${sale.amount?.total || "?"} ${sale.amount?.currency || "AUD"}\n\nSchedule the renewal 48-hour desktop review.`
             );
           }
           break;
         }
-        case "invoice.payment_failed": {
-          const invoice = event.data.object;
+        case "PAYMENT.SALE.DENIED": {
+          const sale = event.resource || {};
           await notify(
-            `Compliance Shield payment FAILED [${invoice.subscription}]`,
-            `A Compliance Shield subscription payment failed.\n\nStripe subscription: ${invoice.subscription}\nStripe customer: ${invoice.customer}\n\nStripe will retry automatically; follow up with the customer if it keeps failing.`
+            `Compliance Shield payment FAILED [${sale.billing_agreement_id || sale.id}]`,
+            `A Compliance Shield subscription payment failed.\n\nPayPal subscription: ${sale.billing_agreement_id || "unknown"}\n\nPayPal will retry per the plan's payment failure threshold; follow up with the customer if it keeps failing.`
           );
           break;
         }
-        case "customer.subscription.deleted": {
-          const subscription = event.data.object;
+        case "BILLING.SUBSCRIPTION.SUSPENDED": {
+          const subscription = event.resource || {};
+          await notify(
+            `Compliance Shield subscription SUSPENDED [${subscription.id}]`,
+            `A Compliance Shield subscription was suspended, usually after repeated payment failures.\n\nPayPal subscription: ${subscription.id}`
+          );
+          break;
+        }
+        case "BILLING.SUBSCRIPTION.CANCELLED": {
+          const subscription = event.resource || {};
           const subs = await db().collection("leads")
-            .where("stripeSubscriptionId", "==", subscription.id).limit(1).get();
+            .where("paypalSubscriptionId", "==", subscription.id).limit(1).get();
           if (!subs.empty) {
             await subs.docs[0].ref.update({ subscriptionStatus: "cancelled" });
           }
           await notify(
             `Compliance Shield subscription cancelled [${subscription.id}]`,
-            `A Compliance Shield annual subscription was cancelled.\n\nStripe subscription: ${subscription.id}\nStripe customer: ${subscription.customer}`
+            `A Compliance Shield subscription was cancelled.\n\nPayPal subscription: ${subscription.id}`
           );
           break;
         }
@@ -829,7 +910,7 @@ exports.stripeWebhook = onRequest(
       }
       return res.status(200).json({ received: true });
     } catch (err) {
-      console.error("stripeWebhook handling error:", err);
+      console.error("paypalWebhook handling error:", err);
       return res.status(500).json({ error: "Webhook handling failed." });
     }
   }
