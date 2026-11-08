@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const form = document.querySelector('[data-detailed-intake]');
+  const form = document.querySelector('[data-emergency-intake]');
   if (!form) return;
 
   const fileInputs = Array.from(form.querySelectorAll('input[type="file"]'));
@@ -35,7 +35,7 @@
     if (alertBox) {
       alertBox.style.display = tooLarge ? 'block' : 'none';
       if (tooLarge) {
-        alertBox.textContent = 'Attachments total ' + formatBytes(bytes) + '. FormSubmit accepts up to 10 MB total, so please remove or compress one or more files before submitting.';
+        alertBox.textContent = 'Attachments total ' + formatBytes(bytes) + '. Please keep supporting files under 10 MB total before submitting.';
       }
     }
     if (submit) submit.disabled = tooLarge;
