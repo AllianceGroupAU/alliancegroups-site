@@ -6,17 +6,21 @@ const source = fs.readFileSync('js/form-handler.js', 'utf8');
 const workerSource = fs.readFileSync('worker.js', 'utf8');
 const functionSource = fs.readFileSync('firebase-backend/functions/index.js', 'utf8');
 
-test('routes all public enquiry forms through the Cloudflare intake endpoint', () => {
-  assert.match(source, /const ENDPOINT = "\/api\/intake"/);
+test('routes public enquiry forms through the responding production Firebase handler', () => {
+  assert.match(source, /const ENDPOINT = "https:\/\/us-central1-alliance-hub-5ed2c\.cloudfunctions\.net\/submitLead"/);
   assert.match(source, /fetch\(ENDPOINT/);
   assert.doesNotMatch(source, /formsubmit\.co/);
   assert.match(source, /notificationDelivered/);
   assert.match(source, /Enquiry sent/);
-  assert.match(source, /0410 942 905/);
+  assert.doesNotMatch(source, /0410 942 905/);
   assert.match(source, /0403 126 276/);
+  assert.match(source, /lead_recorded_unnotified/);
+  assert.match(source, /sendWithAttachments/);
+  assert.match(source, /markSubmissionReady/);
+  assert.match(source, /finalizeUpload/);
 });
 
-test('Cloudflare delivery is the primary notification path with Firebase backup', () => {
+test('Cloudflare Worker remains an independent fallback path with Firebase backup', () => {
   assert.match(workerSource, /env\.EMAIL\.send/);
   assert.match(workerSource, /la\.asbestos@gmail\.com/);
   assert.match(workerSource, /archiveLead/);

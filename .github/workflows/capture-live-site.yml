@@ -1,0 +1,43 @@
+name: Capture the currently published Alliance site
+
+# One-off migration tool: captures public site files, not private ChatGPT files.
+# Later bot edits to live-site/ do not re-trigger or overwrite themselves.
+on:
+  push:
+    branches:
+      - feature/bot-editable-production-source
+    paths:
+      - .github/workflows/capture-live-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export-public-site:
+    if: github.repository == 'AllianceGroupAU/alliancegroups-site'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - name: Export actual live Alliance pages and assets
+        run: python3 scripts/capture-live-site.py
+      - name: Check source integrity
+        run: python3 scripts/check-owned-site.py
+      - name: Commit source to this same migration branch
+        run: |
+          git config user.name "alliance-site-migration[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- live-site/
+          if git diff --cached --quiet; then
+            echo "No new files to commit."
+          else
+            git commit -m "chore: preserve published Alliance website in editable source [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - name: Summarise migration
+        run: |
+          echo "Live source is now editable in GitHub under live-site/." >> "$GITHUB_STEP_SUMMARY"
+          echo "This does NOT change the public Cloudflare route or send any enquiries." >> "$GITHUB_STEP_SUMMARY"

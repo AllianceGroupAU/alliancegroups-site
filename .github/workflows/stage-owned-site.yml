@@ -1,0 +1,46 @@
+name: Stage Git-owned Alliance website on Cloudflare
+
+# A PR merge prepares a new version, NOT public DNS or a live deployment.
+# No Work or ChatGPT Sites builder is required.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'live-site/**'
+      - 'workers/owned-site-worker.js'
+      - 'wrangler.owned-site.jsonc'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload-safe-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify owned site before upload
+        run: |
+          python3 scripts/check-owned-site.py
+          node --check live-site/assets/site.js
+      - name: Check Cloudflare deployment secrets
+        id: auth
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Cloudflare secrets are not configured. Validated Git source only. No deployment made."
+          fi
+      - name: Upload non-live Cloudflare version
+        if: steps.auth.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4.149.0 versions upload --config wrangler.owned-site.jsonc --message "Git-owned Alliance site ${GITHUB_SHA}" --tag "git-owned-${GITHUB_SHA:0:12}"
+          echo "Cloudflare version uploaded but NOT promoted to production traffic." >> "$GITHUB_STEP_SUMMARY"

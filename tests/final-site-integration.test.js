@@ -3,12 +3,24 @@ const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+test('all public enquiry forms post to the production Firebase endpoint that is currently responding', () => {
+  const js = fs.readFileSync('js/form-handler.js', 'utf8');
+  assert.match(js, /https:\/\/us-central1-alliance-hub-5ed2c\.cloudfunctions\.net\/submitLead/);
+  assert.doesNotMatch(js, /const ENDPOINT = "\/api\/intake"/);
+  assert.match(js, /payload\.notificationDelivered/);
+});
+
 test('final homepage loads the production visual and unified delivery layers', () => {
   const html = fs.readFileSync('index.html', 'utf8');
   assert.match(html, /\/css\/final-home\.css/);
   assert.match(html, /\/js\/final-home\.js/);
   assert.match(html, /\/js\/form-handler\.js/);
-  assert.match(html, /When the building fails/);
+  assert.match(html, /Asbestos removal/);
+  assert.match(html, /id="hero-quote"/);
+  assert.match(html, /id="faq"/);
+  assert.match(html, /name="siteAddress"/);
+  assert.doesNotMatch(html, /<strong>07<\/strong>|<strong>128<\/strong>/);
+  assert.match(html, /Request a callback/);
   assert.match(html, /\/intake\//);
 });
 
@@ -27,9 +39,9 @@ test('legacy UI script no longer attaches its own form delivery listeners', () =
   assert.match(source, /Form submission is intentionally centralized in js\/form-handler\.js/);
 });
 
-test('intake attachment guard enforces FormSubmit 10 MB total limit', () => {
+test('intake attachment guard limits uploads to ten files, 20 MB each', () => {
   const source = fs.readFileSync('js/intake-final.js', 'utf8');
-  assert.match(source, /10 \* 1024 \* 1024/);
+  assert.match(source, /200 \* 1024 \* 1024/);
   assert.match(source, /submit\.disabled = tooLarge/);
 });
 
