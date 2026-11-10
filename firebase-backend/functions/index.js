@@ -11,6 +11,7 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 const { getStorage } = require("firebase-admin/storage");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const { buildRelayEnvelope, verifyRelayBearer } = require("./demand-bridge");
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -23,6 +24,8 @@ const storage = () => getStorage();
 // ── Secrets (explicitly declared; accessible only within bound functions) ──
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
+const demandWebhookSecret = defineSecret("DEMAND_WEBHOOK_SECRET");
+const demandRelayKey = defineSecret("DEMAND_RELAY_KEY");
 
 // ── Upload policy ──────────────────────────────────────────────────────────
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB — must match frontend
@@ -190,6 +193,8 @@ exports.submitLead = onRequest(
         timestamp: FieldValue.serverTimestamp(),
         status: isCS ? "intake_pending" : "new",
         notification_status: "pending",
+        demand_bridge_status: "queued",
+        demand_bridge_attempts: 0,
         sourceIp: ip,
       };
 
@@ -204,6 +209,9 @@ exports.submitLead = onRequest(
 
       const leadRef = await db().collection("leads").add(leadData);
       const leadId = leadRef.id;
+
+      // Firestore is the durable private-JARVIS relay queue. JARVIS polls
+      // outbound over TLS; no public route is opened into the private daemon.
 
       // For general enquiries, send notification immediately
       if (!isCS) {
@@ -251,6 +259,96 @@ exports.submitLead = onRequest(
     } catch (err) {
       console.error("submitLead error:", err);
       return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// pullDemandQueue / ackDemandQueue — Private JARVIS outbound relay
+// ══════════════════════════════════════════════════════════════════════════════
+exports.pullDemandQueue = onRequest(
+  { secrets: [demandRelayKey, demandWebhookSecret], cors: false },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+    if (!verifyRelayBearer(req.headers.authorization, demandRelayKey.value())) {
+      return res.status(401).json({ error: "Unauthorized relay client." });
+    }
+
+    const requested = Number(req.body?.max_messages || 20);
+    const maxMessages = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 20, 50));
+
+    try {
+      const snapshot = await db()
+        .collection("leads")
+        .where("demand_bridge_status", "==", "queued")
+        .limit(maxMessages)
+        .get();
+
+      const secret = demandWebhookSecret.value();
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      const events = snapshot.docs.map((doc) =>
+        buildRelayEnvelope(doc.id, doc.data(), secret, timestamp)
+      );
+
+      if (events.length) {
+        const batch = db().batch();
+        for (const doc of snapshot.docs) {
+          batch.update(doc.ref, {
+            demand_bridge_last_attempt_at: FieldValue.serverTimestamp(),
+            demand_bridge_attempts: FieldValue.increment(1),
+          });
+        }
+        await batch.commit();
+      }
+
+      return res.status(200).json({ events, count: events.length });
+    } catch (err) {
+      console.error("pullDemandQueue error:", err);
+      return res.status(500).json({ error: "Relay queue unavailable." });
+    }
+  }
+);
+
+exports.ackDemandQueue = onRequest(
+  { secrets: [demandRelayKey], cors: false },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+    if (!verifyRelayBearer(req.headers.authorization, demandRelayKey.value())) {
+      return res.status(401).json({ error: "Unauthorized relay client." });
+    }
+
+    const acknowledgements = Array.isArray(req.body?.acknowledgements)
+      ? req.body.acknowledgements.slice(0, 50)
+      : [];
+    if (!acknowledgements.length) {
+      return res.status(400).json({ error: "acknowledgements are required." });
+    }
+
+    try {
+      const batch = db().batch();
+      let accepted = 0;
+      for (const ack of acknowledgements) {
+        const leadId = String(ack?.event_id || "").trim();
+        if (!/^[A-Za-z0-9]{1,100}$/.test(leadId)) continue;
+        batch.set(
+          db().collection("leads").doc(leadId),
+          {
+            demand_bridge_status: "delivered",
+            demand_bridge_lead_ref: String(ack?.lead_ref || "").slice(0, 80) || null,
+            demand_bridge_duplicate: !!ack?.is_duplicate,
+            demand_bridge_error: null,
+            demand_bridge_delivered_at: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+        accepted += 1;
+      }
+      if (!accepted) return res.status(400).json({ error: "No valid acknowledgements." });
+      await batch.commit();
+      return res.status(200).json({ acknowledged: accepted });
+    } catch (err) {
+      console.error("ackDemandQueue error:", err);
+      return res.status(500).json({ error: "Relay acknowledgement failed." });
     }
   }
 );

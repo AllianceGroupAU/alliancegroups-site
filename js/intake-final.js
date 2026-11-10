@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const form = document.querySelector('[data-emergency-intake]');
   const form = document.querySelector('[data-emergency-intake], [data-detailed-intake]');
   if (!form) return;
 
@@ -38,7 +39,7 @@
     if (alertBox) {
       alertBox.style.display = tooLarge ? 'block' : 'none';
       if (tooLarge) {
-        alertBox.textContent = 'Attach up to 10 JPG, PNG or PDF files, each no larger than 20 MB.';
+        alertBox.textContent = 'Attachments total ' + formatBytes(bytes) + '. Please keep supporting files under 10 MB total before submitting.';
       }
     }
     if (submit) submit.disabled = tooLarge;
