@@ -58,6 +58,15 @@ To finish it, a session needs all of:
 
 First step once access exists: export the live KV pages and the deployed Worker into this repository, so the real site is finally under version control and has a backup.
 
+## Google tags
+
+Checked 12 November 2026.
+
+- **Live site:** the live 404 page loads one Google tag, `G-ERL9GEWR1B`, and nothing else: no `G-PNHVYYPM84`, no Google Ads tag `AW-18006768389`, no Tag Manager. Read by requesting a missing `.txt` address, which returns the 404 page unchallenged. Other live pages could not be read, so whether they match is unconfirmed.
+- **Repository pages (root rebuild, not live):** load `G-PNHVYYPM84` and `AW-18006768389`. Pull request #72 adds `G-ERL9GEWR1B` to 54 marketing pages and leaves the intake pages alone. It replaces #70.
+- **The `G-PNHVYYPM84` tag fans out.** In a browser test it also sent page views to `G-RLJD9TB11M`, `G-ZPQ7KVKW3W` (two per load), `G-XYD5P3KY9B`, `G-Q0T47Q8SQH` and Merchant Center `MC-B00TT0C6Z2`, including from the intake pages. Those destinations are set in the Google tag's settings, not in code. Which properties are wanted is the owner's call.
+- No page asks for analytics consent. All tags fire on load.
+
 ## Known traps
 
 - **A 403 from a cloud session proves nothing about Google.** Requests for HTML pages from Claude's cloud machines get Cloudflare's "Just a moment..." challenge, while `.txt` files load. Sending a Googlebot user-agent from such a machine is not a test of Googlebot, which Cloudflare identifies by network address. To find out what Google sees, use Search Console's URL Inspection, "Test live URL".
@@ -69,3 +78,4 @@ First step once access exists: export the live KV pages and the deployed Worker 
 - 2026-11-07: Pull request #65 (apex canonicals in `live-site/`) opened, then closed on 11 November once it was clear that directory is not deployed.
 - 2026-11-07: Pull request #66 merged an "Our Work" section and licence wording into `live-site/`. Not live.
 - 2026-11-12: This file created. `AGENTS.md` corrected to match.
+- 2026-11-12: Pull request #72 opened as a clean replacement for #70 (second GA4 property on marketing pages only). "Google tags" section added from its browser test.
