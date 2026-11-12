@@ -1,6 +1,6 @@
 # Alliance Building & Hazmat Group | Alliance Website
 
-> **For JARVIS and other bots:** The actual ChatGPT-built site currently visible on `alliancegroups.com.au` has been recovered under [`live-site/`](live-site/). Edit and test **that directory**, not the root-level rebuild. See [AGENTS.md](AGENTS.md) and [BOT_SITE_EDITING.md](BOT_SITE_EDITING.md). GitHub changes are not publicly deployed until the Cloudflare cutover is verified.
+> **For JARVIS and other bots:** start with [CLAUDE.md](CLAUDE.md). It records what actually serves `alliancegroups.com.au`, the open decisions and the pending work. The live pages are held in Cloudflare KV, not in this repository; [`live-site/`](live-site/) is an undeployed snapshot and the root-level files are an older rebuild. Nothing merged here changes the public website. Standing rules are in [AGENTS.md](AGENTS.md).
 
 The public site at https://www.alliancegroups.com.au/ was developed and published through a **ChatGPT-led workflow**. This repository contains Alliance's multi-page public website, Cloudflare Worker intake, Firebase archive option and the proposed private Alliance Command operations module.
 
