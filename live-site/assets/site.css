@@ -60,3 +60,4 @@
 .job-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}.job-photo{position:relative;margin:0;border:1px solid #4a3027;background:#15100e;overflow:hidden}.job-photo a{display:block}.job-photo img{display:block;width:100%;height:220px;object-fit:cover}.job-photo figcaption{padding:10px 12px;color:var(--muted);font-size:12px;line-height:1.4}
 @media(max-width:780px){.jobs-grid{grid-template-columns:1fr}.job-gallery{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.job-gallery{grid-template-columns:1fr}}
+.links .nav-cta:hover,.links .nav-cta[aria-current=page]{color:#111}
