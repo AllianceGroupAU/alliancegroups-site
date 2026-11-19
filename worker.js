@@ -336,6 +336,13 @@ async function downloadInternalDocument(env,id) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const legacyContactPath = url.pathname === "/contact" || url.pathname === "/contact/";
+    if (["GET", "HEAD"].includes(request.method)
+      && (url.hostname === "alliancegroups.com.au" || legacyContactPath)) {
+      url.hostname = "www.alliancegroups.com.au";
+      if (legacyContactPath) url.pathname = "/contact.html";
+      return Response.redirect(url, 301);
+    }
     if (url.pathname === "/ops" || url.pathname.startsWith("/ops/") || url.pathname.startsWith("/api/internal/")) {
       const user = await verifyOperationsUser(request,env);
       if (!user) return privateJson({error:"Private operations access denied."},403);

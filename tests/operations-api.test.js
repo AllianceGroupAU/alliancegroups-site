@@ -58,6 +58,19 @@ test('unconfigured private operations cannot expose customer records',async()=>{
     assert.equal(response.headers.get('Cache-Control'),'no-store, private');
   }
 });
+test('permanently redirects apex and legacy contact URLs to the www contact page',async()=>{
+  const env={ASSETS:{fetch:async()=>new Response('Should not serve')}};
+  const cases=[
+    ['https://alliancegroups.com.au/contact/?source=legacy','https://www.alliancegroups.com.au/contact.html?source=legacy'],
+    ['https://alliancegroups.com.au/asbestos-removal-brisbane.html','https://www.alliancegroups.com.au/asbestos-removal-brisbane.html'],
+    ['https://www.alliancegroups.com.au/contact','https://www.alliancegroups.com.au/contact.html']
+  ];
+  for(const [source,target] of cases){
+    const response=await worker.fetch(new Request(source),env);
+    assert.equal(response.status,301,source);
+    assert.equal(response.headers.get('Location'),target,source);
+  }
+});
 test('Cloudflare Access JWT must have a valid RSA signature, issuer, audience and owner email',async()=>{
   const {publicKey,privateKey}=await webcrypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
   const key={...(await webcrypto.subtle.exportKey('jwk',publicKey)),kid:'test-key',alg:'RS256'};
