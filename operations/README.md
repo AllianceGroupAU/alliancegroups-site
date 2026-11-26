@@ -9,6 +9,17 @@ This module extends the EXISTING Alliance website, rather than replacing it. **N
 - Leads can be triaged, assigned a route, estimated quote value, and given a next action. Each update is logged. Follow-up email/SMS content can ONLY be saved as a **draft**; no endpoint sends it.
 - Internal PDF/JPEG/PNG evidence can be stored in a PRIVATE R2 bucket (10 MB per file) and downloaded only through an authenticated Worker endpoint.
 - Existing website/static content and Firebase/email fallback remain in place.
+- `/api/internal/partners` accepts owner-entered prospects only; new records are never marked approved/signed and referral fees default off. `/api/internal/suppressions` records a durable marketing opt-out. Both require Cloudflare Access and an `Idempotency-Key`.
+- `operations/schema.sql` contains additive partner/referral/call/payout/outbox/audit tables. These are storage foundations, not evidence that campaigns, payments, appointments or third-party integrations are active.
+
+## JARVIS / referral safety boundary
+- No telephone provider, AI agent, target list, live D1 binding or outbound-call execution endpoint is provisioned by this repository change. Do not initiate calls or deploy this branch as proof of a production system.
+- Outbound must remain disabled until the contact list, consent/DNCR basis, calling window, caller ID, legal review, explicit owner approval and spend cap are verified for each campaign. The campaign table rejects an `approved` status unless its required review fields are recorded; this database gate does not replace legal review.
+- A contact's presence in `partners` means only an unapproved prospect. There is no public partner portal, referral URL, agreement-signing flow, or automatic attribution/payout. Assessors and public-sector contacts are constrained to no referral fee.
+- A payout row cannot be marked approved before second-payment clearance, confirmed disclosure, a tax invoice, owner approval and the clawback date. No transfer/payment endpoint exists.
+- Calls, recordings and transcripts are not collected here. No automatic scheduling, client email/SMS, asbestos assessment/clearance, binding quote, WHSQ filing or work authorisation is provided.
+- Do not treat the proposed referral-fee figures in the partner-program PDF as approved terms or live promises. Strata benefits require the applicable written disclosure and professional review.
+- Provisioning the D1 schema is an owner/operator migration requiring confirmed database identity and a tested backup/rollback. Existing setup and release prerequisites below still apply.
 
 ## Provisioning gates before release
 1. In the correct Cloudflare account, create D1 database `alliance-crm` (or another chosen name). Execute `wrangler d1 execute alliance-crm --file=operations/schema.sql --remote`. Inspect records first: the SQL creates tables, **not leads**.
@@ -29,4 +40,4 @@ This module extends the EXISTING Alliance website, rather than replacing it. **N
 - Database/D1, R2 and Access are REQUIRED for the complete internal module. Without bindings it displays an unavailable response rather than a fake CRM.
 
 ## Outstanding for production V2
-Customer evidence upload with revocable one-time authorisation, inbound email syncing and associated deduplication, granular per-role permissions, payable invoices, licensed regulator workflow templates, appointment integration, full SLA/financial dashboards, and a verified end-to-end live release. These are not falsely represented as finished.
+Provider/account provisioning and staging tests; verified caller/lead intake; campaign creation and enforcement across every permitted calling gate; legal and privacy approvals; authenticated partner portal; agreement and disclosure review workflow; referral attribution; independently verified availability; retry worker and integration adapters; payment/invoice reconciliation; granular per-role permissions; licensed regulator workflow templates; full dashboard reporting; and a verified end-to-end live release. These are not falsely represented as finished.
