@@ -1,0 +1,226 @@
+(function () {
+  'use strict';
+  const MAX_FILE_BYTES = 20 * 1024 * 1024;
+  const MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+
+  function makeLead(data, path = '') {
+    const read = (name, max) => String(data.get(name) || '').trim().slice(0, max);
+    const extra = [
+      ['Property type', read('property', 60)], ['Access / tenancy', read('access', 80)],
+      ['Claim reference', read('claim', 120)], ['Best time to call', read('bestTime', 40)], ['Contact consent', read('consent', 10)],
+      ['Website page', path.split('?')[0].slice(0, 100)]
+    ].filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`);
+    const lead = {
+      name: read('name', 120), email: read('email', 254), phone: read('phone', 20),
+      service: read('service', 120), siteAddress: read('siteAddress', 300) || read('suburb', 150),
+      urgency: read('urgency', 60), _hp: read('_hp', 200),
+      property: read('property', 80), bestTime: read('bestTime', 40),
+      message: [read('message', 1500), ...extra].join('\n\n'),
+      _subject: `Website enquiry — ${read('service', 120)}`
+    };
+    if (lead._hp) throw new Error('Please leave the extra verification field empty.');
+    if (lead.name.length < 2) throw new Error('Please enter your name.');
+    if (!lead.phone && !lead.email) throw new Error('Please enter a phone number or email.');
+    if (lead.phone && !/^[\d\s()+\-]{7,20}$/.test(lead.phone)) throw new Error('Please check your phone number.');
+    if (lead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(lead.email)) throw new Error('Please check your email address.');
+    if (!lead.service) throw new Error('Please select the service you need.');
+    if (read('formKind', 30) !== 'detailed' && read('message', 1500).length < 5) throw new Error('Please add a short description of the work or damage.');
+    return lead;
+  }
+
+  function checkFiles(files) {
+    if (files.length > 10) throw new Error('Attach up to 10 files. Email any additional files with your enquiry reference.');
+    for (const file of files) {
+      if (!MIME_TYPES.includes(file.type)) throw new Error(`${file.name}: please use JPG, PNG or PDF. Email videos and other file formats separately.`);
+      if (!file.size || file.size > MAX_FILE_BYTES) throw new Error(`${file.name}: choose a non-empty file up to 20 MB.`);
+    }
+  }
+
+  const LEAD_ENDPOINT = 'https://formsubmit.co/ajax/info@alliancegroups.com.au';
+
+  async function submitIntake(lead, files = [], session = {}, onProgress = () => {}, request = fetch) {
+    checkFiles(files);
+    if (!session.id) {
+      onProgress('Sending your enquiry…');
+      const payload = {
+        name: lead.name, email: lead.email, phone: lead.phone, service: lead.service,
+        siteAddress: lead.siteAddress, urgency: lead.urgency, property: lead.property,
+        bestTime: lead.bestTime, message: lead.message, _subject: lead._subject, _cc: 'la.asbestos@gmail.com',
+        _template: 'table', _captcha: 'false', _honey: lead._hp
+      };
+      if (files.length) payload.attachments = `${files.length} file(s) selected on the website — customer asked to email them to info@alliancegroups.com.au`;
+      if (lead.email) payload._replyto = lead.email;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      let result;
+      try {
+        const response = await request(LEAD_ENDPOINT, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload), signal: controller.signal
+        });
+        try { result = await response.json(); } catch { throw new Error('The server response could not be confirmed. Please contact us before submitting again.'); }
+        if (!response.ok) {
+          if (response.status === 429) throw new Error('Too many attempts. Please wait a minute, then try again, or call us.');
+          if (response.status >= 500) throw new Error('The enquiry service could not complete this request. Please try again or contact us directly.');
+          throw new Error(result.message || 'Please check your details and try again.');
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('The request timed out. Delivery is unconfirmed; please contact us before submitting again.');
+        if (error instanceof TypeError) throw new Error('The connection was interrupted. Delivery is unconfirmed. Your details remain here; please contact us before submitting again.');
+        throw error;
+      } finally { clearTimeout(timer); }
+      if (!(result && (result.success === true || result.success === 'true'))) throw new Error('Your submission could not be confirmed. Please contact us directly.');
+      session.id = 'WEB-' + Date.now();
+      session.notificationDelivered = true;
+    }
+    return { id: session.id, notificationDelivered: session.notificationDelivered === true, filesNotSent: files.length };
+  }
+
+
+  function track(event, data) {
+    // Never include names, contact details, addresses, messages or filenames.
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event, ...data });
+      if (typeof window.gtag === 'function') window.gtag('event', event, data);
+    }
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { makeLead, checkFiles, submitIntake };
+  if (typeof document === 'undefined') return;
+
+  // Mobile menu (a <details> element, so it also works without JavaScript)
+  const mnav = document.querySelector('.mnav');
+  if (mnav) {
+    const close = () => { mnav.open = false; };
+    mnav.querySelectorAll('a').forEach(link => link.addEventListener('click', close));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && mnav.open) { close(); mnav.querySelector('summary')?.focus(); } });
+    document.addEventListener('click', event => { if (mnav.open && !mnav.contains(event.target)) close(); });
+  }
+
+  // Mark the current section in the navigation
+  const here = location.pathname.replace(/index\.html$/, '');
+  document.querySelectorAll('nav.main a, .mnav nav a').forEach(link => {
+    const target = link.getAttribute('href');
+    if (target && target !== '/' && here.startsWith(target)) link.setAttribute('aria-current', 'page');
+  });
+
+  // Asbestos age check
+  document.querySelectorAll('[data-era-check]').forEach(box => {
+    const buttons = box.querySelectorAll('[data-era]');
+    const results = box.querySelectorAll('[data-era-result]');
+    const hint = box.querySelector('.hint');
+    hint?.classList.add('on');
+    buttons.forEach(button => button.addEventListener('click', () => {
+      const era = button.dataset.era;
+      buttons.forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+      results.forEach(r => r.classList.toggle('on', r.dataset.eraResult === era));
+      hint?.classList.remove('on');
+      track('asbestos_age_check', { era, page_path: location.pathname });
+    }));
+  });
+
+  // Pre-select a service from ?service= (used by links into the intake form)
+  const chosenService = new URLSearchParams(location.search || '').get('service');
+  if (chosenService) {
+    const select = document.querySelector('#intake-service');
+    if (select && Array.from(select.options).some(option => option.value === chosenService)) select.value = chosenService;
+    document.querySelectorAll('input[type="radio"][name="service"]').forEach(input => { if (input.value === chosenService) input.checked = true; });
+  }
+
+  document.querySelectorAll('a[href^="tel:"], a[href^="mailto:"]').forEach(link => link.addEventListener('click', () => {
+    track(link.getAttribute('href').startsWith('tel:') ? 'phone_click' : 'email_click', { page_path: location.pathname });
+  }));
+
+  document.querySelectorAll('.enquiry-form').forEach(form => {
+    let busy = false;
+    let session = {};
+    let previousSignature = '';
+    let previousFiles = [];
+    let started = false;
+    const fileInput = form.elements.namedItem('files');
+    const fileNote = form.querySelector('[data-file-count]');
+    fileInput?.addEventListener?.('change', () => {
+      if (fileNote) fileNote.textContent = fileInput.files.length ? `${fileInput.files.length} file${fileInput.files.length > 1 ? 's' : ''} ready to send` : '';
+    });
+    form.querySelector('[data-again]')?.addEventListener('click', () => {
+      form.classList.remove('is-done');
+      form.reset();
+      session = {}; previousSignature = ''; previousFiles = [];
+      const status = form.querySelector('.form-status');
+      if (status) status.hidden = true;
+      if (fileNote) fileNote.textContent = '';
+      form.querySelector('input:not([type=hidden]):not([tabindex="-1"])')?.focus();
+    });
+    form.addEventListener('focusin', () => { if (!started) { track('form_start', { form_id: form.id }); started = true; } });
+    form.addEventListener('submit', () => track('form_submit', { form_id: form.id })); /* preview: native POST to FormSubmit */ if (false) form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (busy || !form.checkValidity()) { if (!busy) form.reportValidity(); return; }
+      const button = form.querySelector('button[type="submit"]');
+      const status = form.querySelector('.form-status');
+      const help = form.querySelector('.form-error-help');
+      const originalText = button.textContent;
+      const controls = Array.from(form.querySelectorAll('input, select, textarea'));
+      const originallyDisabled = controls.map(control => control.disabled);
+      const showStatus = (message, state = 'pending') => {
+        status.hidden = false;
+        status.dataset.state = state;
+        status.textContent = message;
+      };
+      busy = true;
+      button.disabled = true;
+      button.textContent = 'Sending…';
+      form.setAttribute('aria-busy', 'true');
+      help.hidden = true;
+      let lead;
+      try {
+        const data = new FormData(form);
+        lead = makeLead(data, location.pathname);
+        const files = Array.from(fileInput?.files || []);
+        checkFiles(files);
+        const signature = JSON.stringify(lead);
+        if (signature !== previousSignature || files.length !== previousFiles.length || files.some((file, i) => file !== previousFiles[i])) {
+          session = {}; previousSignature = signature; previousFiles = files;
+        }
+        controls.forEach(control => { control.disabled = true; });
+        const result = await submitIntake(lead, files, session, showStatus);
+        const title = form.querySelector('[data-done-title]');
+        if (result.notificationDelivered && result.filesNotSent) {
+          showStatus(`Got it — we have received your enquiry. Reference: ${result.id}. Your ${result.filesNotSent} file(s) were not uploaded — please email them to info@alliancegroups.com.au with this reference (use the email link below).`, 'pending');
+          if (title) title.textContent = 'Request received.';
+          help.hidden = false;
+        } else if (result.notificationDelivered) {
+          showStatus(`Got it — we have received your enquiry. Reference: ${result.id}. We will be in touch shortly.`, 'success');
+          if (title) title.textContent = 'Request received.';
+          help.hidden = true;
+        } else {
+          showStatus(`Your enquiry${result.fileCount ? ' and ' + result.fileCount + ' supporting file(s)' : ''} has been recorded. Reference: ${result.id}. Email delivery to our team is not confirmed. Please call 0403 126 276 or use the email link below to confirm your request.`, 'pending');
+          if (title) title.textContent = 'Enquiry recorded.';
+          help.hidden = false;
+        }
+        form.classList.add('is-done');
+        const emailLinks = form.querySelectorAll('.email-enquiry');
+        if (emailLinks.length) {
+          const body = [`Enquiry reference: ${result.id}`, `Name: ${lead.name}`, `Phone: ${lead.phone}`, `Email: ${lead.email}`, `Service: ${lead.service}`, `Property: ${lead.siteAddress}`, `Urgency: ${lead.urgency}`, '', lead.message, '', 'Please attach any supporting files to this email.'].join('\n');
+          emailLinks.forEach(link => { link.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject + ' — ' + result.id)}&body=${encodeURIComponent(body)}`; });
+        }
+        track('enquiry_recorded', { form_id: form.id, service: lead.service, page_path: location.pathname });
+      } catch (error) {
+        const reference = session.id ? ` Reference: ${session.id}. Your enquiry is recorded, but completion is unconfirmed.` : '';
+        const message = error.name === 'AbortError' ? 'The upload timed out. Please retry to resume or email your files.' : error.message || 'We could not complete your submission. Please contact us directly.';
+        showStatus(message + reference, 'error');
+        help.hidden = false;
+        const emailLinks = form.querySelectorAll('.email-enquiry');
+        if (emailLinks.length && lead) {
+          const body = [`Enquiry reference: ${session.id || 'unconfirmed'}`, `Name: ${lead.name}`, `Phone: ${lead.phone}`, `Email: ${lead.email}`, `Service: ${lead.service}`, `Property: ${lead.siteAddress}`, `Urgency: ${lead.urgency}`, '', lead.message, '', 'Please attach any supporting files to this email.'].join('\n');
+          emailLinks.forEach(link => { link.href = `mailto:info@alliancegroups.com.au?subject=${encodeURIComponent(lead._subject)}&body=${encodeURIComponent(body)}`; });
+        }
+        track('form_error', { form_id: form.id, stage: session.id ? 'files' : 'submission' });
+      } finally {
+        controls.forEach((control, i) => { control.disabled = originallyDisabled[i]; });
+        busy = false; button.disabled = false; button.textContent = originalText;
+        form.removeAttribute('aria-busy'); status.focus();
+      }
+    });
+  });
+})();
